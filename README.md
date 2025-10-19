@@ -92,16 +92,15 @@ The first social-native crypto platform where communities form around tokens, no
 ### **Wave 1: Foundation & Social UI ✅ COMPLETED**
 *"Where crypto gets social"*
 
-- ✅ Social-first platform design and branding
+- ✅ Social-first platform design
 - ✅ Enhanced token cards with reactions and social metrics
-- ✅ Three-panel layout (main content, social sidebar, activity feed)
 - ✅ Token-gated chat UI components and tier system
 - ✅ Live activity feed with real-time community updates
 - ✅ Creator reputation system UI
 - ✅ Responsive design system and component library
 
 ### **Wave 2: Core Social Infrastructure**
-*"Connect wallets, join communities"*
+*" Web 3 and general polygon integration"*
 
 - 🔗 **Wallet Integration**: RainbowKit connection with Polygon support
 - 💬 **Real-Time Chat System**: Token-gated chat rooms with automatic entry/exit
