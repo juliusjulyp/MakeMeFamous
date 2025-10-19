@@ -1,103 +1,235 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { TokenCardEnhanced } from "@/components/token-card-enhanced";
+import { SocialSidebar } from "@/components/social-sidebar";
+import { ActivityFeed } from "@/components/activity-feed";
+import { Flame, Sparkles, Trophy, Users } from "lucide-react";
+
+// Mock data - will be replaced with real API calls
+const MOCK_TOKENS = [
+  {
+    id: "pepe2",
+    name: "PEPE 2.0",
+    symbol: "$PEPE2",
+    logo: "🐸",
+    priceChange24h: 420.69,
+    holders: 2341,
+    creator: {
+      name: "@froggod",
+      reputation: 5,
+    },
+    lastUpdate: "we're so back - 2h ago",
+    liquidityLocked: true,
+    social: {
+      watchers: 1247,
+      chatMembers: 342,
+      reactions: {
+        rocket: 89,
+        fire: 156,
+        warning: 3
+      },
+      isLive: true
+    }
+  },
+  {
+    id: "scamcoin",
+    name: "Definitely Not A Scam",
+    symbol: "$SCAM",
+    logo: "💰",
+    priceChange24h: -89.5,
+    holders: 12,
+    creator: {
+      name: "@anon420",
+      reputation: 0,
+    },
+    lastUpdate: "trust me bro - 5h ago",
+    liquidityLocked: false,
+    scamWarnings: [
+      "Oof. Dev holds 85% of supply. That's not a red flag, that's the whole parade.",
+      "Liquidity isn't locked. This dev believes in trust falls.",
+    ],
+    social: {
+      watchers: 45,
+      chatMembers: 8,
+      reactions: {
+        rocket: 2,
+        fire: 1,
+        warning: 23
+      }
+    }
+  },
+  {
+    id: "moonshot",
+    name: "To The Moon",
+    symbol: "$MOON",
+    logo: "🚀",
+    priceChange24h: 156.3,
+    holders: 5420,
+    creator: {
+      name: "@cryptokid",
+      reputation: 3,
+    },
+    lastUpdate: "LFG! New partnership incoming - 1h ago",
+    liquidityLocked: true,
+    social: {
+      watchers: 823,
+      chatMembers: 245,
+      reactions: {
+        rocket: 156,
+        fire: 89,
+        warning: 0
+      }
+    }
+  },
+  {
+    id: "doge420",
+    name: "Doge 420",
+    symbol: "$DOGE420",
+    logo: "🐕",
+    priceChange24h: -12.4,
+    holders: 892,
+    creator: {
+      name: "@memequeen",
+      reputation: 4,
+    },
+    lastUpdate: "Just a small correction, HODL - 3h ago",
+    liquidityLocked: true,
+    social: {
+      watchers: 456,
+      chatMembers: 123,
+      reactions: {
+        rocket: 34,
+        fire: 67,
+        warning: 5
+      }
+    }
+  },
+];
+
+type FilterType = "trending" | "new" | "top-devs";
+
+export default function HomePage() {
+  const [activeFilter, setActiveFilter] = useState<FilterType>("trending");
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="flex flex-col lg:flex-row min-h-screen">
+      {/* Main Content */}
+      <div className="flex-1 container mx-auto px-4 py-8">
+      {/* Hero Section */}
+      <div className="text-center mb-12 space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
+            Where Crypto Gets Social
+          </h1>
+          <p className="text-lg text-primary/80 font-medium">
+            Join the community. Hold the token. Unlock the experience.
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        
+        <p className="text-xl text-foreground/70 max-w-3xl mx-auto leading-relaxed">
+          The first platform where <strong>holding tokens = joining exclusive communities</strong>. 
+          Auto-entry chats, live events, collaborative research, and creator accountability.
+          <br />
+          <span className="text-base text-foreground/50 mt-2 block">
+            Revolutionary social infrastructure built for the crypto community.
+          </span>
+        </p>
+
+        <div className="flex gap-4 justify-center pt-6">
+          <Button size="lg" className="gap-2 text-base px-8 py-4">
+            <Users className="h-5 w-5" />
+            Join Communities
+          </Button>
+          <Button size="lg" variant="outline" className="gap-2 text-base px-8 py-4">
+            <Sparkles className="h-5 w-5" />
+            Create Token
+          </Button>
+        </div>
+
+        {/* Social Proof */}
+        <div className="flex flex-wrap items-center justify-center gap-4 lg:gap-8 pt-8 text-sm text-foreground/60">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span>1,247 active in chats</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <span>Live community events</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 bg-purple-500 rounded-full animate-pulse"></div>
+            <span>23 scams detected today</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-2">
+        <Button
+          variant={activeFilter === "trending" ? "primary" : "ghost"}
+          onClick={() => setActiveFilter("trending")}
+          className="gap-2"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          <Flame className="h-4 w-4" />
+          Trending
+        </Button>
+        <Button
+          variant={activeFilter === "new" ? "primary" : "ghost"}
+          onClick={() => setActiveFilter("new")}
+          className="gap-2"
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          <Sparkles className="h-4 w-4" />
+          New
+        </Button>
+        <Button
+          variant={activeFilter === "top-devs" ? "primary" : "ghost"}
+          onClick={() => setActiveFilter("top-devs")}
+          className="gap-2"
         >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <Trophy className="h-4 w-4" />
+          Top Devs
+        </Button>
+      </div>
+
+        {/* Token Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {MOCK_TOKENS.map((token) => (
+            <TokenCardEnhanced key={token.id} token={token} />
+          ))}
+        </div>
+
+      {/* CTA Section */}
+      <div className="mt-12 text-center p-8 border-2 border-dashed border-primary/30 rounded-xl bg-gradient-to-r from-primary/5 to-secondary/5">
+        <h3 className="text-2xl font-bold mb-2">Ready to Build Your Community?</h3>
+        <p className="text-foreground/60 mb-6">
+          Create tokens that come with instant social infrastructure.
+          <br />
+          <span className="text-sm">Auto-entry chats, live events, and community governance included.</span>
+        </p>
+        <div className="flex gap-4 justify-center">
+          <Button className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Launch Token + Community
+          </Button>
+          <Button variant="outline" className="gap-2">
+            <Users className="h-4 w-4" />
+            Join Existing Communities
+          </Button>
+        </div>
+        </div>
+      </div>
+
+      {/* Social Sidebar - Hidden on mobile */}
+      <div className="hidden lg:block">
+        <SocialSidebar />
+      </div>
+
+      {/* Activity Feed - Hidden on mobile */}
+      <div className="hidden xl:block">
+        <ActivityFeed />
+      </div>
     </div>
   );
 }
