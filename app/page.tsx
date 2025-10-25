@@ -22,6 +22,7 @@ const MOCK_TOKENS = [
     },
     lastUpdate: "we're so back - 2h ago",
     liquidityLocked: true,
+    address: "0x1234567890123456789012345678901234567890",
     social: {
       watchers: 1247,
       chatMembers: 342,
@@ -46,6 +47,7 @@ const MOCK_TOKENS = [
     },
     lastUpdate: "trust me bro - 5h ago",
     liquidityLocked: false,
+    address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
     scamWarnings: [
       "Oof. Dev holds 85% of supply. That's not a red flag, that's the whole parade.",
       "Liquidity isn't locked. This dev believes in trust falls.",

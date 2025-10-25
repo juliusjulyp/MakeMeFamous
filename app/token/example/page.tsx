@@ -134,10 +134,10 @@ export default function TokenPage({ params }: TokenPageProps) {
             <h1 className="text-3xl font-bold">{token.symbol}</h1>
             <h2 className="text-xl text-foreground/70">{token.name}</h2>
             {token.liquidityLocked && (
-              <Lock className="h-5 w-5 text-green-500" title="Liquidity Locked" />
+              <Lock className="h-5 w-5 text-green-500" />
             )}
             {token.creator.reputation >= 4 && (
-              <Crown className="h-5 w-5 text-yellow-500" title="Top Creator" />
+              <Crown className="h-5 w-5 text-yellow-500" />
             )}
           </div>
           

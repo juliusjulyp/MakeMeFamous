@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import '@rainbow-me/rainbowkit/styles.css';
 
 :root {
   /* Dark mode by default */

@@ -28,6 +28,7 @@ interface TokenCardProps {
     logo: string;
     priceChange24h: number;
     holders: number;
+    address?: string;
     creator: {
       name: string;
       reputation: number;
@@ -60,11 +61,12 @@ export function TokenCardEnhanced({ token }: TokenCardProps) {
   };
 
   return (
-    <Card
-      className={`transition-all hover:scale-[1.02] group relative overflow-hidden ${
-        hasWarnings ? "border-red-500" : ""
-      } ${token.social?.isLive ? "ring-2 ring-primary/30" : ""}`}
-    >
+    <Link href={token.address ? `/token/${token.address}` : '#'} className="block">
+      <Card
+        className={`transition-all hover:scale-[1.02] group relative overflow-hidden cursor-pointer ${
+          hasWarnings ? "border-red-500" : ""
+        } ${token.social?.isLive ? "ring-2 ring-primary/30" : ""}`}
+      >
       {/* Live Indicator */}
       {token.social?.isLive && (
         <div className="absolute top-2 right-2 flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded-full text-xs z-10">
@@ -95,10 +97,10 @@ export function TokenCardEnhanced({ token }: TokenCardProps) {
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold truncate">{token.symbol}</h3>
                   {token.liquidityLocked && (
-                    <Lock className="h-3 w-3 text-green-500" title="Liquidity Locked" />
+                    <Lock className="h-3 w-3 text-green-500" />
                   )}
                   {token.creator.reputation >= 4 && (
-                    <Crown className="h-3 w-3 text-yellow-500" title="Top Creator" />
+                    <Crown className="h-3 w-3 text-yellow-500" />
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-foreground/60">
@@ -204,6 +206,7 @@ export function TokenCardEnhanced({ token }: TokenCardProps) {
               size="sm"
               variant="ghost"
               className="gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => e.stopPropagation()}
             >
               <MessageCircle className="h-3 w-3" />
               Chat
@@ -212,6 +215,7 @@ export function TokenCardEnhanced({ token }: TokenCardProps) {
               size="sm"
               variant="ghost"
               className="gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => e.stopPropagation()}
             >
               <Heart className="h-3 w-3" />
             </Button>
@@ -219,5 +223,6 @@ export function TokenCardEnhanced({ token }: TokenCardProps) {
         </div>
       </div>
     </Card>
+    </Link>
   );
 }

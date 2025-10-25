@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAccount } from "wagmi";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,6 @@ import {
   TrendingUp, 
   Video, 
   Mic,
-  Lock,
   Crown,
   Diamond,
   Flame
@@ -107,6 +107,7 @@ const getTierColor = (tier: ChatRoom["tier"]) => {
 
 export function SocialSidebar() {
   const [activeTab, setActiveTab] = useState<"chats" | "events">("chats");
+  const { isConnected } = useAccount();
 
   return (
     <div className="w-80 border-l border-border bg-surface/30 backdrop-blur-sm">
@@ -138,20 +139,13 @@ export function SocialSidebar() {
       <div className="flex-1 overflow-y-auto">
         {activeTab === "chats" ? (
           <div className="p-4 space-y-3">
-            {/* Connect Wallet CTA */}
-            <Card className="border-dashed border-primary/50 bg-primary/5">
-              <CardContent className="p-4 text-center">
-                <Lock className="h-6 w-6 mx-auto mb-2 text-primary" />
-                <p className="text-sm font-medium mb-2">Connect Wallet</p>
-                <p className="text-xs text-foreground/60 mb-3">
-                  Join token-gated chats automatically
-                </p>
-                <Button size="sm" className="gap-2">
-                  <MessageCircle className="h-3 w-3" />
-                  Connect
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Live Chats Header */}
+            <div className="mb-4">
+              <h3 className="text-sm font-medium text-foreground/70 mb-3">Live Token Chats</h3>
+              {!isConnected && (
+                <p className="text-xs text-foreground/50">Connect your wallet to join token-gated communities</p>
+              )}
+            </div>
 
             {/* Chat Rooms */}
             <div className="space-y-2">

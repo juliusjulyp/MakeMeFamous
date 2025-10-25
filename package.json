@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "node server.js",
+    "dev:next": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start"
   },
@@ -15,8 +16,11 @@
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.546.0",
     "next": "15.5.6",
+    "pino-pretty": "^13.1.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.3.1",
     "viem": "^2.38.3",
     "wagmi": "^2.18.1"

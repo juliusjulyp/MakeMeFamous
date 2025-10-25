@@ -3,10 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { WalletConnect } from "@/components/wallet-connect";
+import { ProfileAvatar } from "@/components/profile/profile-avatar";
+import { ProfileModal } from "@/components/profile/profile-modal";
+import { useProfile } from "@/hooks/use-profile";
 import { Users, MessageCircle, BookOpen, Sparkles, Menu, X } from "lucide-react";
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const { profile, isConnected } = useProfile();
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -55,8 +61,19 @@ export function Navigation() {
           </Button>
         </div>
 
-        {/* Desktop CTA Button */}
-        <div className="hidden md:block">
+        {/* Desktop Actions */}
+        <div className="hidden md:flex items-center gap-3">
+          <WalletConnect />
+          {isConnected && profile && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowProfileModal(true)}
+              className="gap-2 p-2"
+            >
+              <ProfileAvatar profile={profile} size="sm" />
+            </Button>
+          )}
           <Button className="gap-2">
             <Sparkles className="h-4 w-4" />
             Create Token
@@ -98,6 +115,16 @@ export function Navigation() {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Profile Modal */}
+      {profile && (
+        <ProfileModal
+          profile={profile}
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          isOwnProfile={true}
+        />
       )}
     </nav>
   );
