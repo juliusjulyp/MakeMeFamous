@@ -10,10 +10,9 @@ import { Send, Users, Loader2 } from 'lucide-react';
 interface TokenChatProps {
   tokenAddress: string;
   tokenSymbol: string;
-  tokenValue: number;
 }
 
-export function TokenChat({ tokenAddress, tokenSymbol, tokenValue }: TokenChatProps) {
+export function TokenChat({ tokenAddress, tokenSymbol }: TokenChatProps) {
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -30,7 +29,7 @@ export function TokenChat({ tokenAddress, tokenSymbol, tokenValue }: TokenChatPr
     sendMessage,
     startTyping,
     stopTyping,
-  } = useChat({ tokenAddress, tokenValue });
+  } = useChat({ tokenAddress });
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -77,7 +76,7 @@ export function TokenChat({ tokenAddress, tokenSymbol, tokenValue }: TokenChatPr
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -116,9 +115,6 @@ export function TokenChat({ tokenAddress, tokenSymbol, tokenValue }: TokenChatPr
         <p className="text-foreground/70 max-w-md">
           {accessDeniedReason || 'You need at least $10 worth of tokens to access this chat.'}
         </p>
-        <div className="mt-4 text-sm text-foreground/50">
-          Current token value: ${tokenValue.toFixed(2)}
-        </div>
       </div>
     );
   }
@@ -193,7 +189,7 @@ export function TokenChat({ tokenAddress, tokenSymbol, tokenValue }: TokenChatPr
             type="text"
             value={messageInput}
             onChange={handleInputChange}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             placeholder={`Message ${tokenSymbol} holders...`}
             className="flex-1 px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
             maxLength={500}

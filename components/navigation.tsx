@@ -7,7 +7,7 @@ import { WalletConnect } from "@/components/wallet-connect";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { ProfileModal } from "@/components/profile/profile-modal";
 import { useProfile } from "@/hooks/use-profile";
-import { Users, MessageCircle, BookOpen, Sparkles, Menu, X } from "lucide-react";
+import { Users, MessageCircle, BookOpen, Sparkles, Menu, X, Coins, Plus } from "lucide-react";
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +27,13 @@ export function Navigation() {
 
         {/* Navigation Links */}
         <div className="hidden md:flex items-center gap-6">
+          <Link
+            href="/tokens"
+            className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+          >
+            <Coins className="h-4 w-4" />
+            Tokens
+          </Link>
           <Link
             href="/communities"
             className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"

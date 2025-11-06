@@ -124,7 +124,7 @@ export function TokenDetails({ tokenAddress }: TokenDetailsProps) {
                 <div className="flex items-center gap-2">
                   <h1 className="text-3xl font-bold">{tokenData.name}</h1>
                   {tokenData.verified && (
-                    <Badge variant="default" className="bg-green-500/20 text-green-400 border-green-500/30">
+                    <Badge variant="success" className="bg-green-500/20 text-green-400 border-green-500/30">
                       Verified
                     </Badge>
                   )}
@@ -231,7 +231,6 @@ export function TokenDetails({ tokenAddress }: TokenDetailsProps) {
           <TokenChat
             tokenAddress={tokenAddress}
             tokenSymbol={tokenData.symbol}
-            tokenValue={userTokenValue}
           />
         )}
       </div>

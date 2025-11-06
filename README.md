@@ -129,17 +129,30 @@ The platform will have different badges and NFT's polygon powered. A member will
 - **🖼️ Profile Avatars**: Automatic colorful avatar generation based on wallet addresses
 - **📊 Activity Tracking**: Real-time reputation system based on chat activity and engagement
 - **🔄 Profile Integration**: Seamless profile display in chat messages and navigation
+- **📄 Smart Contracts**: Complete SocialToken and SocialTokenFactory contracts deployed
+- **🏭 Token Factory**: Live on Polygon Amoy at `0x8216A11dadb24582B429447601a4dd336AEFcC97`
+- **💰 Bonding Curves**: Automated token pricing with buy/sell functionality
+- **🎛️ Platform Economics**: 0.01 MATIC creation fee, 2% trading fees, revenue sharing
 
-### **🧪 Testnet Ready**
-All features are fully functional on **Polygon Amoy testnet** for easy testing and development.
+### **🧪 Deployed on Polygon Amoy Testnet**
+**Factory Contract**: `0x8216A11dadb24582B429447601a4dd336AEFcC97`
+- ✅ Token creation: 0.01 MATIC fee
+- ✅ Platform fee: 2% on all trades
+- ✅ Creator revenue sharing
+- ✅ Anti-spam: 5 tokens max per user
+- ✅ Social access: $10+ holdings for chat
 
 ### **🚀 Live Features**
-- Connect wallet → Auto-create profile
-- Join token chats with $10+ holdings 
-- Real-time messaging with typing indicators
-- Profile avatars in chat and navigation
-- Reputation scoring based on activity
-- Cross-tab real-time synchronization
+- ✅ Connect wallet → Auto-create profile
+- ✅ Real-time messaging with typing indicators  
+- ✅ Profile avatars in chat and navigation
+- ✅ Reputation scoring based on activity
+- ✅ Cross-tab real-time synchronization
+- ✅  Create social tokens (0.01 MATIC)
+- ✅  Bonding curve token trading
+- ✅  Automatic social access control
+- ✅  Revenue sharing for creators
+- ✅  Platform analytics and stats
 
 ### Design Philosophy: Social Finance (SoFi)
 
@@ -182,41 +195,63 @@ All features are fully functional on **Polygon Amoy testnet** for easy testing a
   ✅ Wallet Integration**: RainbowKit connection with Polygon + Polygon Amoy testnet support
 - ✅ Real-Time Chat System**: Token-gated chat rooms with $10+ token value requirement
 
-### **Wave 2: Core Social Infrastructure** 🚧 **IN PROGRESS**
-*"Web3 and Polygon ecosystem integration"*
+### **Wave 2: Blockchain Infrastructure & Smart Contracts** ✅ **COMPLETED**
+*"From mockup to mainnet: Full DeFi integration"*
 
--  **Wallet Integration**: RainbowKit connection with Polygon + Polygon Amoy testnet support
--  **Real-Time Chat System**: Token-gated chat rooms with $10+ token value requirement
--  **Live Socket.io Server**: Custom Next.js server for real-time messaging and typing indicators
--  **User Profile System**: Wallet-based identity with reputation scoring and activity tracking
--  **Profile Avatars**: Automatic avatar generation with consistent colors per wallet address
--  **Chat Integration**: Profile avatars and display names in real-time chat
-- 🔄 **Live Membership Updates**: Real-time holder tracking and chat access
-- 👥 **Community Management**: Chat moderation, member roles, and permissions  
-- 🆔 **Polygon ID Integration**: Decentralized identity for enhanced user profiles
-- 📊 **Basic Analytics**: Community activity, member growth, engagement metrics via The Graph
+**🏗️ Smart Contract Architecture**
+- ✅ **SocialToken Contract**: ERC-20 with bonding curves, social access control, and revenue sharing
+- ✅ **SocialTokenFactory Contract**: Token creation, platform economics, and fee management
+- ✅ **Bonding Curve Algorithm**: Automated pricing with `y = 0.001 + 0.000001x` pricing function
+- ✅ **Social Access Verification**: Smart contract-based $10+ USD value requirement for chat access
+- ✅ **Creator Revenue System**: 1% trading fees automatically distributed to token creators
+- ✅ **Platform Anti-Spam**: 5 token creation limit per wallet address
 
-### **Wave 3: Token Creation & Launch System**
-*"Build your community, launch your token"*
+**🚀 Polygon Deployment & Infrastructure**
+- ✅ **Live Deployment**: Factory contract at `0x8216A11dadb24582B429447601a4dd336AEFcC97` on Polygon Amoy
+- ✅ **Contract Verification**: Etherscan-verified contracts with public source code
+- ✅ **Wagmi v2 + RainbowKit**: Modern Web3 wallet connection with Polygon + Amoy testnet
+- ✅ **Real-Time Blockchain Verification**: Socket.io server makes live contract calls for chat access
+- ✅ **Contract ABIs & Hooks**: Type-safe React hooks for all smart contract interactions
 
-- 🚀 **Social Token Creator**: Community-driven token design and launch flow
-- 🎪 **Launch Events System**: Live token reveals with community participation  
-- 📈 **Smart Contract Deployer**: One-click token deployment on Polygon
-- 🔒 **Liquidity Management**: Automatic liquidity locking and transparency
-- 📊 **Covalent Analytics**: Real-time token metrics, holder distribution, and transaction data
-- 🎯 **Creator Dashboard**: Launch analytics with Polygon-native data APIs
-- 🏆 **Achievement System**: On-chain badges verified through Polygon ID
+
+**🎭 Enhanced Social Infrastructure**
+- ✅ **Blockchain-Gated Chat**: Real-time token balance verification for community access
+- ✅ **User Profile System**: Wallet-based identity with on-chain reputation tracking where we will also polygon id later
+- ✅ **Live Socket.io Server**: ES modules server with real-time messaging and blockchain integration
+- ✅ **Cross-Tab Sync**: Real-time profile updates across browser tabs and sessions
+
+**📊 Platform Economics & Analytics**
+- ✅ **Revenue Tracking**: On-chain platform statistics and creator earnings
+- ✅ **Token Metrics**: Live supply, member count, and trading volume tracking
+- ✅ **Platform Dashboard**: Real-time statistics displayed on homepage
+- ✅ **Creator Analytics**: Token performance metrics and community growth tracking
+- ✅ **Social Token Creator UI**: Complete token creation form with validation and contract integration
+- ✅ **Token Discovery System**: Browse and search interface with trending tokens display
+
+
+
+### **Wave 3: Frontend Trading Interface & User Experience** 🚧 **IN PROGRESS**
+*"Trade, chat, and build communities"*
+
+-  **Real-Time Token Trading**: Full buy/sell interface with bonding curve price visualization
+-  **Blockchain-Connected Chat**: Live chat system integrated with deployed smart contracts
+-  **Token Portfolio Display**: Individual token pages with stats, trading, and community chat
+-  **Homepage Integration**: Live platform statistics from deployed contracts
+
+**🔄 Next Up**
+- 🔄 **Creator Dashboard**: Analytics interface for token creators with revenue tracking
+- 🔄 **User Token Portfolio**: Comprehensive holdings view and social memberships overview
+- 🔄 **Launch Events System**: Live token reveals with community participation features
+- 🔄 **Mobile Optimization**: Enhanced responsive design for mobile token trading
 
 ### **Wave 4: Community Intelligence & Safety**
 *"Collaborative research beats individual DYOR"*
 
 - 🕵️ **Collaborative Due Diligence**: Community research tools and voting via Lens Protocol
-- 🤖 **AI Scam Detection**: Smart contract analysis + community verification
 - ⚡ **Real-Time Alerts**: Wallet movement tracking via Moralis APIs
 - 📊 **Advanced Social Analytics**: Lens-powered social graph analysis and engagement metrics
 - 🎯 **Reputation Engine**: Cross-project creator accountability with Polygon ID integration
 - 🛡️ **Protection Tools**: Automated warnings, community reporting, safety scores
-- 🔗 **Lens Protocol Integration**: Decentralized social layer for community interactions
 
 ### **Wave 5: Advanced Social Experiences**
 *"The future of social finance"*

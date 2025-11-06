@@ -1,7 +1,58 @@
-const { createServer } = require('http')
-const { parse } = require('url')
-const next = require('next')
-const { Server } = require('socket.io')
+import { createServer } from 'http'
+import { parse } from 'url'
+import next from 'next'
+import { Server } from 'socket.io'
+import { createPublicClient, http, formatEther } from 'viem'
+import { polygonAmoy } from 'viem/chains'
+
+// Social Token ABI (minimal for our needs)
+const SOCIAL_TOKEN_ABI = [
+  {
+    inputs: [{ name: "_user", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [{ name: "_user", type: "address" }],
+    name: "checkSocialAccess",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "currentPrice",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
+  }
+]
+
+// Create blockchain client
+const publicClient = createPublicClient({
+  chain: polygonAmoy,
+  transport: http()
+})
+
+// Helper function to check social access
+async function checkTokenAccess(tokenAddress, userAddress) {
+  try {
+    // Check if user has social access via smart contract
+    const hasAccess = await publicClient.readContract({
+      address: tokenAddress,
+      abi: SOCIAL_TOKEN_ABI,
+      functionName: 'checkSocialAccess',
+      args: [userAddress]
+    })
+
+    return { hasAccess, error: null }
+  } catch (error) {
+    console.error('Error checking token access:', error)
+    return { hasAccess: false, error: error.message }
+  }
+}
 
 const dev = process.env.NODE_ENV !== 'production'
 const hostname = 'localhost'
@@ -30,26 +81,39 @@ app.prepare().then(() => {
     console.log('Client connected:', socket.id)
 
     // Join token-specific chat room
-    socket.on('join-token-chat', ({ tokenAddress, userAddress, tokenValue }) => {
-      console.log(`User ${userAddress} joining chat for token ${tokenAddress} with value $${tokenValue}`)
+    socket.on('join-token-chat', async ({ tokenAddress, userAddress }) => {
+      console.log(`User ${userAddress} attempting to join chat for token ${tokenAddress}`)
       
-      // Check if user has $10+ worth of tokens
-      if (tokenValue >= 10) {
-        socket.join(`token-${tokenAddress}`)
-        socket.to(`token-${tokenAddress}`).emit('user-joined', {
-          userAddress,
-          timestamp: new Date().toISOString(),
-        })
+      try {
+        // Check social access via smart contract
+        const { hasAccess, error } = await checkTokenAccess(tokenAddress, userAddress)
         
-        socket.emit('chat-access-granted', { tokenAddress })
-        console.log(`Access granted for ${userAddress} to token ${tokenAddress}`)
-      } else {
+        if (hasAccess) {
+          socket.join(`token-${tokenAddress}`)
+          socket.to(`token-${tokenAddress}`).emit('user-joined', {
+            userAddress,
+            timestamp: new Date().toISOString(),
+          })
+          
+          socket.emit('chat-access-granted', { tokenAddress })
+          console.log(`Access granted for ${userAddress} to token ${tokenAddress}`)
+        } else {
+          socket.emit('chat-access-denied', { 
+            tokenAddress, 
+            required: 10, 
+            current: 0,
+            reason: error || 'Insufficient token balance for social access'
+          })
+          console.log(`Access denied for ${userAddress} - ${error || 'insufficient token balance'}`)
+        }
+      } catch (error) {
+        console.error('Error checking token access:', error)
         socket.emit('chat-access-denied', { 
           tokenAddress, 
           required: 10, 
-          current: tokenValue 
+          current: 0,
+          reason: 'Unable to verify token balance'
         })
-        console.log(`Access denied for ${userAddress} - insufficient token value`)
       }
     })
 
@@ -66,7 +130,7 @@ app.prepare().then(() => {
     // Handle chat messages
     socket.on('send-message', ({ tokenAddress, message, userAddress, userEns }) => {
       const messageData = {
-        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         message,
         userAddress,
         userEns: userEns || null,

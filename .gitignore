@@ -100,3 +100,28 @@ jspm_packages/
 # temporary folders
 tmp/
 temp/
+
+# Hardhat files
+/cache
+/artifacts
+/typechain-types
+
+# Blockchain/crypto files
+*.key
+*.pem
+/secrets/
+.secret
+
+# Contract deployment artifacts (keep these local for development)
+/deployments/localhost/
+/deployments/hardhat/
+
+# Local environment variables for blockchain
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Wallet files
+wallet.json
+keystore/

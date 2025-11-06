@@ -20,10 +20,9 @@ export interface ChatUser {
 
 interface UseChatProps {
   tokenAddress: string;
-  tokenValue: number; // USD value of user's token holdings
 }
 
-export function useChat({ tokenAddress, tokenValue }: UseChatProps) {
+export function useChat({ tokenAddress }: UseChatProps) {
   const { address } = useAccount();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -45,7 +44,6 @@ export function useChat({ tokenAddress, tokenValue }: UseChatProps) {
     socketInstance.emit('join-token-chat', {
       tokenAddress,
       userAddress: address,
-      tokenValue,
     });
 
     // Listen for access granted
@@ -58,9 +56,9 @@ export function useChat({ tokenAddress, tokenValue }: UseChatProps) {
     });
 
     // Listen for access denied
-    socketInstance.on('chat-access-denied', ({ required, current }) => {
+    socketInstance.on('chat-access-denied', ({ required, current, reason }) => {
       setHasAccess(false);
-      setAccessDeniedReason(`Minimum $${required} token value required. You have $${current.toFixed(2)}`);
+      setAccessDeniedReason(reason || `Minimum $${required} token value required`);
       setIsConnecting(false);
     });
 
@@ -116,7 +114,7 @@ export function useChat({ tokenAddress, tokenValue }: UseChatProps) {
       socketInstance.off('user-typing');
       socketInstance.off('user-stopped-typing');
     };
-  }, [address, tokenAddress, tokenValue]);
+  }, [address, tokenAddress]);
 
   // Send message function
   const sendMessage = useCallback((message: string) => {
