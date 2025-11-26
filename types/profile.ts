@@ -1,51 +1,55 @@
 export interface UserProfile {
-  address: string;           // Wallet address (primary key)
-  displayName?: string;      // Custom display name
-  bio?: string;             // Short bio (max 160 chars)
-  ensName?: string;         // Resolved ENS name
-  avatar?: string;          // Profile picture URL/IPFS hash
-  joinedAt: string;         // ISO timestamp when first connected
-  lastActive: string;       // Last activity timestamp
-  reputation: number;       // Activity-based reputation score
+  address: string;
+  displayName: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  socialLinks: {
+    twitter: string | null;
+    telegram: string | null;
+    website: string | null;
+  };
   stats: {
-    chatCount: number;      // Total messages sent
-    tokensHeld: number;     // Number of different tokens held
-    communitiesJoined: number; // Number of token communities
-    reactionsGiven: number; // Reactions given to others
+    tokensCreated: number;
+    tokensHeld: number;
+    totalTrades: number;
+    totalVolume: string;
+    chatCount: number;
   };
-  preferences: {
-    showENS: boolean;       // Show ENS name instead of address
-    publicProfile: boolean; // Profile visible to others
-    notifications: boolean; // Enable notifications
-  };
-  badges: string[];         // Achievement badges earned
-  tokensHeld: string[];     // Token contract addresses they hold $10+
+  badges: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ProfileUpdate {
   displayName?: string;
   bio?: string;
-  avatar?: string;
-  preferences?: Partial<UserProfile['preferences']>;
+  avatarUrl?: string;
+  socialLinks?: {
+    twitter: string | null;
+    telegram: string | null;
+    website: string | null;
+  };
 }
 
 // Default profile for new users
 export const createDefaultProfile = (address: string): UserProfile => ({
   address: address.toLowerCase(),
-  joinedAt: new Date().toISOString(),
-  lastActive: new Date().toISOString(),
-  reputation: 0,
-  stats: {
-    chatCount: 0,
-    tokensHeld: 0,
-    communitiesJoined: 0,
-    reactionsGiven: 0,
+  displayName: null,
+  bio: null,
+  avatarUrl: null,
+  socialLinks: {
+    twitter: null,
+    telegram: null,
+    website: null,
   },
-  preferences: {
-    showENS: true,
-    publicProfile: true,
-    notifications: true,
+  stats: {
+    tokensCreated: 0,
+    tokensHeld: 0,
+    totalTrades: 0,
+    totalVolume: '0',
+    chatCount: 0,
   },
   badges: [],
-  tokensHeld: [],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 });

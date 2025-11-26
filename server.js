@@ -5,7 +5,7 @@ import { Server } from 'socket.io'
 import { createPublicClient, http, formatEther } from 'viem'
 import { polygonAmoy } from 'viem/chains'
 
-// Social Token ABI (minimal for our needs)
+// Social Token ABI ( for our needs)
 const SOCIAL_TOKEN_ABI = [
   {
     inputs: [{ name: "_user", type: "address" }],
@@ -55,7 +55,7 @@ async function checkTokenAccess(tokenAddress, userAddress) {
 }
 
 const dev = process.env.NODE_ENV !== 'production'
-const hostname = 'localhost'
+const hostname = dev ? 'localhost' : '0.0.0.0'
 const port = process.env.PORT || 3000
 
 const app = next({ dev, hostname, port })
@@ -70,7 +70,7 @@ app.prepare().then(() => {
   // Initialize Socket.io
   const io = new Server(httpServer, {
     cors: {
-      origin: dev ? ['http://localhost:3000'] : [],
+      origin: dev ? ['http://localhost:3000'] : true, // Allow all origins in production (you can restrict later)
       methods: ['GET', 'POST'],
       credentials: true,
     },
@@ -128,20 +128,36 @@ app.prepare().then(() => {
     })
 
     // Handle chat messages
-    socket.on('send-message', ({ tokenAddress, message, userAddress, userEns }) => {
+    socket.on('send-message', ({ tokenAddress, message, userAddress, userEns, replyTo }) => {
       const messageData = {
         id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         message,
         userAddress,
         userEns: userEns || null,
         timestamp: new Date().toISOString(),
+        likes: [],
+        replyTo: replyTo || null,
       }
 
       // Broadcast to all users in the token chat room
       socket.to(`token-${tokenAddress}`).emit('new-message', messageData)
       socket.emit('message-sent', messageData)
-      
+
       console.log(`Message sent in token ${tokenAddress} by ${userAddress}:`, message)
+    })
+
+    // Handle message likes
+    socket.on('like-message', ({ tokenAddress, messageId, userAddress }) => {
+      // Broadcast like to all users in the room
+      io.to(`token-${tokenAddress}`).emit('message-liked', { messageId, userAddress })
+      console.log(`Message ${messageId} liked by ${userAddress}`)
+    })
+
+    // Handle message unlikes
+    socket.on('unlike-message', ({ tokenAddress, messageId, userAddress }) => {
+      // Broadcast unlike to all users in the room
+      io.to(`token-${tokenAddress}`).emit('message-unliked', { messageId, userAddress })
+      console.log(`Message ${messageId} unliked by ${userAddress}`)
     })
 
     // Handle typing indicators

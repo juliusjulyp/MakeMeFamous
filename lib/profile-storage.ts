@@ -56,60 +56,44 @@ class ProfileStorage {
   }
 
   // Update profile
-  updateProfile(address: string, updates: ProfileUpdate): UserProfile {
+  updateProfile(address: string, updates: ProfileUpdate | UserProfile): UserProfile {
     const normalizedAddress = address.toLowerCase();
     const currentProfile = this.getProfile(normalizedAddress);
-    
+
     const updatedProfile: UserProfile = {
       ...currentProfile,
       ...updates,
       address: normalizedAddress, // Ensure address doesn't change
-      lastActive: new Date().toISOString(),
-      preferences: {
-        ...currentProfile.preferences,
-        ...updates.preferences,
+      updatedAt: new Date().toISOString(),
+      socialLinks: {
+        ...currentProfile.socialLinks,
+        ...updates.socialLinks,
       },
     };
-    
+
     this.profiles.set(normalizedAddress, updatedProfile);
     this.saveToStorage();
-    
+
     return updatedProfile;
   }
 
   // Update user stats (for activity tracking)
   updateStats(address: string, statUpdates: Partial<UserProfile['stats']>): UserProfile {
     const profile = this.getProfile(address);
-    
+
     const updatedProfile: UserProfile = {
       ...profile,
-      lastActive: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       stats: {
         ...profile.stats,
         ...statUpdates,
       },
     };
-    
-    // Update reputation based on activity
-    updatedProfile.reputation = this.calculateReputation(updatedProfile);
-    
+
     this.profiles.set(address.toLowerCase(), updatedProfile);
     this.saveToStorage();
-    
-    return updatedProfile;
-  }
 
-  // Calculate reputation score based on activity
-  private calculateReputation(profile: UserProfile): number {
-    const { stats } = profile;
-    
-    // Simple reputation formula (can be enhanced later)
-    const chatScore = stats.chatCount * 1;
-    const tokenScore = stats.tokensHeld * 5;
-    const communityScore = stats.communitiesJoined * 3;
-    const reactionScore = stats.reactionsGiven * 0.5;
-    
-    return Math.floor(chatScore + tokenScore + communityScore + reactionScore);
+    return updatedProfile;
   }
 
   // Add badge to user

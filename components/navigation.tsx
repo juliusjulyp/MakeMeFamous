@@ -4,15 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { WalletConnect } from "@/components/wallet-connect";
-import { ProfileAvatar } from "@/components/profile/profile-avatar";
-import { ProfileModal } from "@/components/profile/profile-modal";
-import { useProfile } from "@/hooks/use-profile";
-import { Users, MessageCircle, BookOpen, Sparkles, Menu, X, Coins, Plus } from "lucide-react";
+import { useAccount } from "wagmi";
+import { BookOpen, Sparkles, Menu, X, Coins, User } from "lucide-react";
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const { profile, isConnected } = useProfile();
+  const { isConnected } = useAccount();
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -35,26 +32,21 @@ export function Navigation() {
             Tokens
           </Link>
           <Link
-            href="/communities"
-            className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
-          >
-            <Users className="h-4 w-4" />
-            Communities
-          </Link>
-          <Link
-            href="/content"
+            href="/fame"
             className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
           >
             <BookOpen className="h-4 w-4" />
-            Content
+            Fame
           </Link>
-          <Link
-            href="/events"
-            className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
-          >
-            <MessageCircle className="h-4 w-4" />
-            Events
-          </Link>
+          {isConnected && (
+            <Link
+              href="/profile"
+              className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+            >
+              <User className="h-4 w-4" />
+              Profile
+            </Link>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -71,20 +63,12 @@ export function Navigation() {
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
           <WalletConnect />
-          {isConnected && profile && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowProfileModal(true)}
-              className="gap-2 p-2"
-            >
-              <ProfileAvatar profile={profile} size="sm" />
+          <Link href="/create">
+            <Button className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Create Token
             </Button>
-          )}
-          <Button className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Create Token
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -93,45 +77,39 @@ export function Navigation() {
         <div className="md:hidden border-t border-border bg-background">
           <div className="container mx-auto px-4 py-4 space-y-4">
             <Link
-              href="/communities"
+              href="/tokens"
               className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
               onClick={() => setIsOpen(false)}
             >
-              <Users className="h-4 w-4" />
-              Communities
+              <Coins className="h-4 w-4" />
+              Tokens
             </Link>
             <Link
-              href="/content"
+              href="/fame"
               className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
               onClick={() => setIsOpen(false)}
             >
               <BookOpen className="h-4 w-4" />
-              Content
+              Fame
             </Link>
-            <Link
-              href="/events"
-              className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
-              onClick={() => setIsOpen(false)}
-            >
-              <MessageCircle className="h-4 w-4" />
-              Events
+            {isConnected && (
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                <User className="h-4 w-4" />
+                Profile
+              </Link>
+            )}
+            <Link href="/create" onClick={() => setIsOpen(false)}>
+              <Button className="w-full gap-2">
+                <Sparkles className="h-4 w-4" />
+                Create Token
+              </Button>
             </Link>
-            <Button className="w-full gap-2">
-              <Sparkles className="h-4 w-4" />
-              Create Token
-            </Button>
           </div>
         </div>
-      )}
-
-      {/* Profile Modal */}
-      {profile && (
-        <ProfileModal
-          profile={profile}
-          isOpen={showProfileModal}
-          onClose={() => setShowProfileModal(false)}
-          isOwnProfile={true}
-        />
       )}
     </nav>
   );

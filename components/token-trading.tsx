@@ -8,7 +8,31 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SOCIAL_TOKEN_ABI } from '@/lib/contracts';
-import { TrendingUp, TrendingDown, DollarSign, Users, ArrowUpDown, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Users, ArrowUpDown, Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+
+// Format price with max 6 decimals
+const formatPrice = (value: string | number): string => {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (num === 0) return '0';
+  if (num < 0.000001) return num.toExponential(2);
+  return num.toFixed(6).replace(/\.?0+$/, '');
+};
+
+// Format large numbers with commas or abbreviations
+const formatNumber = (value: string | number): string => {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(2)}K`;
+  return num.toLocaleString();
+};
+
+type TransactionStatus = 'idle' | 'pending' | 'confirming' | 'success' | 'error';
+
+interface TransactionState {
+  status: TransactionStatus;
+  message: string;
+  hash?: string;
+}
 
 interface TokenTradingProps {
   tokenAddress: Address;
@@ -19,12 +43,17 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
   const [buyAmount, setBuyAmount] = useState('');
   const [sellAmount, setSellAmount] = useState('');
   const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy');
+  const [txState, setTxState] = useState<TransactionState>({ status: 'idle', message: '' });
+  const [inputError, setInputError] = useState<string>('');
 
-  // Read token info
-  const { data: tokenInfo } = useReadContract({
+  // Read token info (poll every 3 seconds for live updates)
+  const { data: tokenInfo, isLoading: isLoadingToken, isError: isTokenError } = useReadContract({
     address: tokenAddress,
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'getTokenInfo',
+    query: {
+      refetchInterval: 3000,
+    },
   });
 
   const { data: userBalance } = useReadContract({
@@ -32,6 +61,9 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
+    query: {
+      refetchInterval: 3000,
+    },
   });
 
   const { data: buyPrice } = useReadContract({
@@ -39,6 +71,9 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'getBuyPrice',
     args: buyAmount ? [parseEther(buyAmount)] : [BigInt(0)],
+    query: {
+      refetchInterval: 2000, // Faster refresh for trading prices
+    },
   });
 
   const { data: sellPrice } = useReadContract({
@@ -46,6 +81,9 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'getSellPrice',
     args: sellAmount && userBalance ? [parseEther(sellAmount)] : [BigInt(0)],
+    query: {
+      refetchInterval: 2000,
+    },
   });
 
   const { data: socialAccess } = useReadContract({
@@ -53,6 +91,9 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'checkSocialAccess',
     args: address ? [address] : undefined,
+    query: {
+      refetchInterval: 5000,
+    },
   });
 
   // Write functions
@@ -68,16 +109,77 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     isPending: isSelling 
   } = useWriteContract();
 
-  const { isLoading: isBuyConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isBuyConfirming, isSuccess: isBuySuccess, isError: isBuyError } = useWaitForTransactionReceipt({
     hash: buyHash,
   });
 
-  const { isLoading: isSellConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isSellConfirming, isSuccess: isSellSuccess, isError: isSellError } = useWaitForTransactionReceipt({
     hash: sellHash,
   });
 
+  // Track pending amounts for success messages
+  const [pendingBuyAmount, setPendingBuyAmount] = useState('');
+  const [pendingSellAmount, setPendingSellAmount] = useState('');
+
+  // Handle transaction success/error
+  useEffect(() => {
+    if (isBuySuccess && buyHash && pendingBuyAmount) {
+      setTxState({ status: 'success', message: `Successfully bought ${pendingBuyAmount} tokens!`, hash: buyHash });
+      setBuyAmount('');
+      setPendingBuyAmount('');
+      setTimeout(() => setTxState({ status: 'idle', message: '' }), 5000);
+    }
+  }, [isBuySuccess, buyHash, pendingBuyAmount]);
+
+  useEffect(() => {
+    if (isSellSuccess && sellHash && pendingSellAmount) {
+      setTxState({ status: 'success', message: `Successfully sold ${pendingSellAmount} tokens!`, hash: sellHash });
+      setSellAmount('');
+      setPendingSellAmount('');
+      setTimeout(() => setTxState({ status: 'idle', message: '' }), 5000);
+    }
+  }, [isSellSuccess, sellHash, pendingSellAmount]);
+
+  useEffect(() => {
+    if (isBuyError) {
+      setTxState({ status: 'error', message: 'Transaction failed. Please try again.' });
+      setTimeout(() => setTxState({ status: 'idle', message: '' }), 5000);
+    }
+  }, [isBuyError]);
+
+  useEffect(() => {
+    if (isSellError) {
+      setTxState({ status: 'error', message: 'Transaction failed. Please try again.' });
+      setTimeout(() => setTxState({ status: 'idle', message: '' }), 5000);
+    }
+  }, [isSellError]);
+
+  // Input validation
+  const validateBuyAmount = (value: string) => {
+    setInputError('');
+    if (!value) return;
+    const num = parseFloat(value);
+    if (isNaN(num) || num <= 0) {
+      setInputError('Amount must be greater than 0');
+    }
+  };
+
+  const validateSellAmount = (value: string) => {
+    setInputError('');
+    if (!value) return;
+    const num = parseFloat(value);
+    if (isNaN(num) || num <= 0) {
+      setInputError('Amount must be greater than 0');
+    } else if (userBalance && num > parseFloat(formatEther(userBalance))) {
+      setInputError('Insufficient balance');
+    }
+  };
+
   const handleBuy = async () => {
-    if (!buyAmount || !buyPrice) return;
+    if (!buyAmount || !buyPrice || inputError) return;
+
+    setTxState({ status: 'pending', message: 'Waiting for wallet confirmation...' });
+    setPendingBuyAmount(buyAmount);
 
     try {
       await buyTokens({
@@ -86,13 +188,25 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
         functionName: 'buyTokens',
         value: buyPrice,
       });
-    } catch (error) {
-      console.error('Buy failed:', error);
+      setTxState({ status: 'confirming', message: 'Transaction submitted. Waiting for confirmation...' });
+    } catch (error: any) {
+      setPendingBuyAmount('');
+      const errorMsg = error?.message?.toLowerCase() || '';
+      const message = errorMsg.includes('user rejected') || errorMsg.includes('user denied') || errorMsg.includes('rejected')
+        ? 'Transaction cancelled by user'
+        : errorMsg.includes('insufficient funds') || errorMsg.includes('insufficient balance')
+        ? 'Insufficient MATIC balance'
+        : 'Transaction failed. Please try again.';
+      setTxState({ status: 'error', message });
+      setTimeout(() => setTxState({ status: 'idle', message: '' }), 5000);
     }
   };
 
   const handleSell = async () => {
-    if (!sellAmount) return;
+    if (!sellAmount || inputError) return;
+
+    setTxState({ status: 'pending', message: 'Waiting for wallet confirmation...' });
+    setPendingSellAmount(sellAmount);
 
     try {
       await sellTokens({
@@ -101,8 +215,27 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
         functionName: 'sellTokens',
         args: [parseEther(sellAmount)],
       });
-    } catch (error) {
-      console.error('Sell failed:', error);
+      setTxState({ status: 'confirming', message: 'Transaction submitted. Waiting for confirmation...' });
+    } catch (error: any) {
+      setPendingSellAmount('');
+      const errorMsg = error?.message?.toLowerCase() || '';
+      const message = errorMsg.includes('user rejected') || errorMsg.includes('user denied') || errorMsg.includes('rejected')
+        ? 'Transaction cancelled by user'
+        : errorMsg.includes('insufficient token balance')
+        ? 'Insufficient token balance'
+        : errorMsg.includes('insufficient contract')
+        ? 'No liquidity available - no one has bought tokens yet'
+        : 'Transaction failed. Please try again.';
+      setTxState({ status: 'error', message });
+      setTimeout(() => setTxState({ status: 'idle', message: '' }), 5000);
+    }
+  };
+
+  const handleMaxSell = () => {
+    if (userBalance) {
+      const maxAmount = formatEther(userBalance);
+      setSellAmount(maxAmount);
+      validateSellAmount(maxAmount);
     }
   };
 
@@ -110,95 +243,102 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
   const buyPriceFormatted = buyPrice ? formatEther(buyPrice) : '0';
   const sellPriceFormatted = sellPrice ? formatEther(sellPrice) : '0';
 
-  if (!tokenInfo) {
+  if (isTokenError) {
     return (
       <Card className="p-6">
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="flex flex-col items-center justify-center h-48 text-center">
+          <XCircle className="h-8 w-8 text-red-500 mb-4" />
+          <h3 className="font-semibold mb-2">Failed to load token</h3>
+          <p className="text-sm text-foreground/60 mb-4">
+            Token may not exist or network error occurred.
+          </p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
         </div>
       </Card>
     );
   }
 
-  const [name, symbol, totalSupply, totalMembers, creator, isVerified, currentPrice] = tokenInfo;
+  if (isLoadingToken || !tokenInfo) {
+    return (
+      <Card className="p-6">
+        <div className="flex flex-col items-center justify-center h-48">
+          <Loader2 className="h-8 w-8 animate-spin mb-4" />
+          <p className="text-sm text-foreground/60">Loading token data...</p>
+        </div>
+      </Card>
+    );
+  }
+
+  const [, symbol, , totalMembers] = tokenInfo;
 
   return (
     <div className="space-y-6">
-      
-      {/* Token Stats */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-lg">
-                {symbol.charAt(0)}
-              </span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold">{name}</h2>
-                {isVerified && (
-                  <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                    Verified
-                  </Badge>
-                )}
-              </div>
-              <p className="text-foreground/60">{symbol}</p>
-            </div>
-          </div>
-          
-          {socialAccess && (
-            <Badge variant="success" className="bg-green-500/10 text-green-500 border-green-500/20">
-              Chat Access ✓
-            </Badge>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold">{formatEther(currentPrice)}Ⓜ</div>
-            <div className="text-sm text-foreground/60">Current Price</div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-2xl font-bold">{Number(totalMembers)}</div>
-            <div className="text-sm text-foreground/60">Members</div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-2xl font-bold">{(Number(formatEther(totalSupply)) / 1000000).toFixed(1)}M</div>
-            <div className="text-sm text-foreground/60">Supply</div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-2xl font-bold">{userBalanceFormatted.slice(0, 8)}</div>
-            <div className="text-sm text-foreground/60">Your Balance</div>
-          </div>
-        </div>
-      </Card>
-
       {/* Trading Interface */}
       <Card className="p-6">
         <div className="flex items-center gap-4 mb-6">
           <Button
-            variant={activeTab === 'buy' ? 'primary' : 'outline'}
+            variant="outline"
             onClick={() => setActiveTab('buy')}
-            className="flex-1"
+            className={`flex-1 ${activeTab === 'buy' ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' : ''}`}
           >
             <TrendingUp className="h-4 w-4 mr-2" />
             Buy
           </Button>
-          
+
           <Button
-            variant={activeTab === 'sell' ? 'primary' : 'outline'}
+            variant="outline"
             onClick={() => setActiveTab('sell')}
-            className="flex-1"
+            className={`flex-1 ${activeTab === 'sell' ? 'bg-red-600 hover:bg-red-700 text-white border-red-600' : ''}`}
             disabled={!userBalance || userBalance === BigInt(0)}
           >
             <TrendingDown className="h-4 w-4 mr-2" />
             Sell
           </Button>
         </div>
+
+        {/* Transaction Status Notification */}
+        {txState.status !== 'idle' && (
+          <div className={`mb-4 p-4 rounded-lg flex items-start gap-3 ${
+            txState.status === 'success' ? 'bg-green-500/10 border border-green-500/20' :
+            txState.status === 'error' ? 'bg-red-500/10 border border-red-500/20' :
+            'bg-blue-500/10 border border-blue-500/20'
+          }`}>
+            {txState.status === 'success' && <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />}
+            {txState.status === 'error' && <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />}
+            {(txState.status === 'pending' || txState.status === 'confirming') && (
+              <Loader2 className="h-5 w-5 text-blue-500 animate-spin flex-shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1">
+              <p className={`text-sm font-medium ${
+                txState.status === 'success' ? 'text-green-500' :
+                txState.status === 'error' ? 'text-red-500' :
+                'text-blue-500'
+              }`}>
+                {txState.message}
+              </p>
+              {txState.hash && (
+                <a
+                  href={`https://amoy.polygonscan.com/tx/${txState.hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline mt-1 inline-block"
+                >
+                  View on PolygonScan
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Input Error */}
+        {inputError && (
+          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+            <span className="text-sm text-red-500">{inputError}</span>
+          </div>
+        )}
 
         {activeTab === 'buy' ? (
           <div className="space-y-4">
@@ -209,29 +349,21 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
               <input
                 type="number"
                 value={buyAmount}
-                onChange={(e) => setBuyAmount(e.target.value)}
+                onChange={(e) => {
+                  setBuyAmount(e.target.value);
+                  validateBuyAmount(e.target.value);
+                }}
                 placeholder="Enter token amount"
-                className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                min="0"
+                step="any"
+                className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
 
-            {buyAmount && buyPrice && (
-              <div className="bg-surface border border-border rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-foreground/60">You pay:</span>
-                  <span className="font-bold">{buyPriceFormatted} MATIC</span>
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-sm text-foreground/60">You receive:</span>
-                  <span className="font-bold">{buyAmount} {symbol}</span>
-                </div>
-              </div>
-            )}
-
             <Button
               onClick={handleBuy}
-              disabled={!isConnected || !buyAmount || isBuying || isBuyConfirming}
-              className="w-full"
+              disabled={!isConnected || !buyAmount || isBuying || isBuyConfirming || !!inputError}
+              className="w-full bg-green-600 hover:bg-green-700"
               size="lg"
             >
               {isBuying || isBuyConfirming ? (
@@ -253,38 +385,38 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
               <label className="block text-sm font-medium mb-2">
                 Amount to Sell
               </label>
-              <input
-                type="number"
-                value={sellAmount}
-                onChange={(e) => setSellAmount(e.target.value)}
-                placeholder="Enter token amount"
-                max={userBalanceFormatted}
-                className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  value={sellAmount}
+                  onChange={(e) => {
+                    setSellAmount(e.target.value);
+                    validateSellAmount(e.target.value);
+                  }}
+                  placeholder="Enter token amount"
+                  max={userBalanceFormatted}
+                  min="0"
+                  step="any"
+                  className="w-full px-3 py-2 pr-16 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleMaxSell}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs font-medium text-primary hover:text-primary/80 bg-primary/10 rounded"
+                >
+                  MAX
+                </button>
+              </div>
               <div className="text-xs text-foreground/50 mt-1">
-                Max: {userBalanceFormatted} {symbol}
+                Balance: {parseFloat(userBalanceFormatted).toFixed(4)} {symbol}
               </div>
             </div>
 
-            {sellAmount && sellPrice && (
-              <div className="bg-surface border border-border rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-foreground/60">You sell:</span>
-                  <span className="font-bold">{sellAmount} {symbol}</span>
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-sm text-foreground/60">You receive:</span>
-                  <span className="font-bold">{sellPriceFormatted} MATIC</span>
-                </div>
-              </div>
-            )}
-
             <Button
               onClick={handleSell}
-              disabled={!isConnected || !sellAmount || isSelling || isSellConfirming}
-              className="w-full"
+              disabled={!isConnected || !sellAmount || isSelling || isSellConfirming || !!inputError}
+              className="w-full bg-red-600 hover:bg-red-700"
               size="lg"
-              variant="outline"
             >
               {isSelling || isSellConfirming ? (
                 <>
@@ -306,32 +438,6 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
             Connect your wallet to start trading
           </div>
         )}
-      </Card>
-
-      {/* Social Access Info */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Users className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Community Access</h3>
-        </div>
-        
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-foreground/70">Chat Access:</span>
-            <Badge variant={socialAccess ? "success" : "outline"}>
-              {socialAccess ? "Granted" : "Need $10+ worth"}
-            </Badge>
-          </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-foreground/70">Community Members:</span>
-            <span className="font-medium">{Number(totalMembers)}</span>
-          </div>
-          
-          <div className="text-sm text-foreground/60">
-            Hold $10+ worth of {symbol} tokens to unlock exclusive community features
-          </div>
-        </div>
       </Card>
     </div>
   );

@@ -1,14 +1,15 @@
 // components/token-creator.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { formatEther } from 'viem';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useTokenFactory } from '@/hooks/use-token-factory';
 import { CONTRACT_CONFIG } from '@/lib/contracts';
-import { Loader2, Rocket, DollarSign, Users, TrendingUp } from 'lucide-react';
+import { Loader2, Rocket, DollarSign, Users, TrendingUp, Upload, X } from 'lucide-react';
 
 interface TokenFormData {
   name: string;
@@ -16,15 +17,18 @@ interface TokenFormData {
   initialSupply: string;
   description: string;
   imageUrl: string;
+  imageFile: File | null;
 }
 
 export function TokenCreator() {
+  const router = useRouter();
   const { address, isConnected } = useAccount();
   const { 
     createToken, 
     isCreating, 
     creationFee, 
     platformStats,
+    createdTokenAddress,
     error 
   } = useTokenFactory();
 
@@ -34,9 +38,83 @@ export function TokenCreator() {
     initialSupply: '1000000',
     description: '',
     imageUrl: '',
+    imageFile: null,
   });
 
   const [showForm, setShowForm] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState('');
+  const [pendingMetadata, setPendingMetadata] = useState<{
+    name: string;
+    symbol: string;
+    description: string;
+    imageUrl: string;
+  } | null>(null);
+
+  // Save metadata and redirect when token is successfully created
+  useEffect(() => {
+    console.log('🔄 useEffect triggered:', {
+      createdTokenAddress,
+      hasAddress: !!address,
+      hasPendingMetadata: !!pendingMetadata
+    });
+
+    const saveMetadataAndRedirect = async () => {
+      if (createdTokenAddress && address && pendingMetadata) {
+        // Save metadata to database
+        try {
+          console.log('💾 Saving metadata to Supabase:', {
+            token_address: createdTokenAddress,
+            image_url: pendingMetadata.imageUrl,
+          });
+
+          const response = await fetch('/api/tokens', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              token_address: createdTokenAddress,
+              creator_address: address,
+              name: pendingMetadata.name,
+              symbol: pendingMetadata.symbol,
+              description: pendingMetadata.description,
+              image_url: pendingMetadata.imageUrl,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            console.error('Failed to save metadata:', error);
+          } else {
+            console.log('✅ Metadata saved successfully');
+          }
+        } catch (error) {
+          console.error('Failed to save token metadata:', error);
+        }
+
+        // Close the form and reset
+        setShowForm(false);
+
+        // Reset form data for next token creation
+        setFormData({
+          name: '',
+          symbol: '',
+          initialSupply: '1000000',
+          description: '',
+          imageUrl: '',
+          imageFile: null,
+        });
+        setUploadedImageUrl('');
+        setPendingMetadata(null);
+
+        // Redirect to token page
+        setTimeout(() => {
+          router.push(`/token/${createdTokenAddress}`);
+        }, 1500);
+      }
+    };
+
+    saveMetadataAndRedirect();
+  }, [createdTokenAddress, address, pendingMetadata, router]);
 
   const handleInputChange = (field: keyof TokenFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -44,30 +122,95 @@ export function TokenCreator() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!isConnected) {
+
+    if (!isConnected || !address) {
       alert('Please connect your wallet first');
       return;
     }
 
+    setIsProcessing(true); // Start processing immediately
+
     try {
-      await createToken(formData);
-      alert('Token created successfully!');
-      setShowForm(false);
-      setFormData({
-        name: '',
-        symbol: '',
-        initialSupply: '1000000',
-        description: '',
-        imageUrl: '',
+      let imageUrlToUse = formData.imageUrl;
+
+      // Upload image to Cloudinary first (silently)
+      if (formData.imageFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', formData.imageFile);
+
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload image');
+        }
+
+        const { url } = await uploadResponse.json();
+        console.log('✅ Image uploaded to Cloudinary:', url);
+        setUploadedImageUrl(url);
+        imageUrlToUse = url; // Use the Cloudinary URL for blockchain
+      }
+
+      // Create token on blockchain with Cloudinary URL (not base64)
+      console.log('🚀 Creating token with image URL:', imageUrlToUse);
+      console.log('   URL length:', imageUrlToUse.length, 'characters');
+      console.log('   Initial Supply:', formData.initialSupply);
+      console.log('   Name:', formData.name);
+      console.log('   Symbol:', formData.symbol);
+
+      // Store metadata for saving after token creation
+      setPendingMetadata({
+        name: formData.name,
+        symbol: formData.symbol,
+        description: formData.description,
+        imageUrl: imageUrlToUse,
       });
-    } catch (error) {
-      console.error('Failed to create token:', error);
-      alert('Failed to create token. Please try again.');
+
+      // Metadata will be saved in the useEffect when createdTokenAddress is set
+      await createToken({
+        ...formData,
+        imageUrl: imageUrlToUse, // Use uploaded URL instead of base64
+      });
+    } catch (error: any) {
+      console.error('❌ Failed to create token:', error);
+      console.error('   Error type:', error.name);
+      console.error('   Error message:', error.message);
+      if (error.cause) {
+        console.error('   Cause:', error.cause);
+      }
+      if (error.shortMessage) {
+        console.error('   Short message:', error.shortMessage);
+      }
+      setIsProcessing(false);
     }
   };
 
-  const isFormValid = formData.name && formData.symbol && formData.description;
+  const isFormValid = formData.name && formData.symbol && formData.description && formData.imageUrl;
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image must be less than 5MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          imageUrl: reader.result as string,
+          imageFile: file
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setFormData(prev => ({ ...prev, imageUrl: '', imageFile: null }));
+  };
 
   if (!showForm) {
     return (
@@ -125,7 +268,7 @@ export function TokenCreator() {
         <Card className="p-8 text-center">
           <div className="max-w-md mx-auto space-y-4">
             <Rocket className="h-16 w-16 mx-auto text-primary" />
-            <h2 className="text-2xl font-bold">Launch Your Social Token</h2>
+            <h2 className="text-2xl font-bold">Launch Your Token</h2>
             <p className="text-foreground/70">
               Create a token that brings your community together. Enable token-gated chats, 
               build engaged communities, and let your supporters become stakeholders.
@@ -152,7 +295,7 @@ export function TokenCreator() {
               className="w-full"
               disabled={!isConnected}
             >
-              {!isConnected ? 'Connect Wallet to Create Token' : 'Create Social Token'}
+              {!isConnected ? 'Connect Wallet to Create Token' : 'Create Token'}
             </Button>
           </div>
         </Card>
@@ -164,7 +307,7 @@ export function TokenCreator() {
     <Card className="max-w-2xl mx-auto p-6">
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold">Create Your Social Token</h2>
+          <h2 className="text-2xl font-bold">Create Your Token</h2>
           <p className="text-foreground/70">
             Fill in the details below to launch your community token
           </p>
@@ -231,19 +374,40 @@ export function TokenCreator() {
             </div>
           </div>
 
-          {/* Image URL */}
+          {/* Token Image */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Image URL
-              <span className="text-foreground/50 text-xs ml-2">(optional)</span>
+              Token Image
+              <span className="text-red-500 ml-1">*</span>
             </label>
-            <input
-              type="url"
-              value={formData.imageUrl}
-              onChange={(e) => handleInputChange('imageUrl', e.target.value)}
-              placeholder="https://example.com/token-image.png"
-              className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
+            {formData.imageUrl ? (
+              <div className="relative w-32 h-32">
+                <img
+                  src={formData.imageUrl}
+                  alt="Token preview"
+                  className="w-32 h-32 rounded-lg object-cover border border-border"
+                />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                <Upload className="h-8 w-8 text-foreground/50 mb-2" />
+                <span className="text-sm text-foreground/50">Click to upload image</span>
+                <span className="text-xs text-foreground/40 mt-1">PNG, JPG up to 5MB</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
 
           {/* Creation Fee Display */}
@@ -275,7 +439,7 @@ export function TokenCreator() {
               variant="outline"
               onClick={() => setShowForm(false)}
               className="flex-1"
-              disabled={isCreating}
+              disabled={isCreating || isProcessing}
             >
               Cancel
             </Button>
@@ -283,9 +447,14 @@ export function TokenCreator() {
             <Button
               type="submit"
               className="flex-1"
-              disabled={!isFormValid || isCreating}
+              disabled={!isFormValid || isCreating || isProcessing}
             >
-              {isCreating ? (
+              {createdTokenAddress ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Token created successfully
+                </>
+              ) : isCreating || isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Creating Token...

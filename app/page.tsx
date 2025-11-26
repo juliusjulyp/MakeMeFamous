@@ -84,7 +84,7 @@ export default function HomePage() {
               <Card className="p-6 text-center bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20">
                 <Users className="h-8 w-8 mx-auto mb-3 text-blue-500" />
                 <div className="text-3xl font-bold mb-1">{platformStats.activeTokens}</div>
-                <div className="text-sm text-foreground/60">Active Communities</div>
+                <div className="text-sm text-foreground/60">Active Tokens</div>
               </Card>
               
               <Card className="p-6 text-center bg-gradient-to-br from-yellow-500/5 to-yellow-500/10 border-yellow-500/20">
@@ -115,11 +115,11 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-bold mb-4">1. Create Your Token</h3>
                 <p className="text-foreground/70 mb-6">
-                  Launch your social token with automatic bonding curve pricing. 
-                  Pay just 0.01 MATIC to start building your community.
+                  Launch your token with automatic bonding curve pricing.
+                  Start building your community instantly.
                 </p>
                 <div className="inline-flex items-center text-sm text-primary font-medium">
-                  0.01 MATIC fee <ArrowRight className="h-4 w-4 ml-2" />
+                  Get started now <ArrowRight className="h-4 w-4 ml-2" />
                 </div>
               </div>
             </Card>
@@ -133,11 +133,11 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-bold mb-4">2. Build Community</h3>
                 <p className="text-foreground/70 mb-6">
-                  Holders automatically get access to exclusive chat rooms. 
+                  Holders automatically get access to exclusive chat rooms.
                   The more tokens they hold, the deeper the access.
                 </p>
                 <div className="inline-flex items-center text-sm text-blue-500 font-medium">
-                  $10+ for chat access <ArrowRight className="h-4 w-4 ml-2" />
+                  Join exclusive chats <ArrowRight className="h-4 w-4 ml-2" />
                 </div>
               </div>
             </Card>
@@ -151,50 +151,16 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-bold mb-4">3. Earn Revenue</h3>
                 <p className="text-foreground/70 mb-6">
-                  Get 1% of all trading fees from your token. 
+                  Earn from all trading activity on your token.
                   Active communities generate sustainable income.
                 </p>
                 <div className="inline-flex items-center text-sm text-green-500 font-medium">
-                  1% trading fees <ArrowRight className="h-4 w-4 ml-2" />
+                  Start earning <ArrowRight className="h-4 w-4 ml-2" />
                 </div>
               </div>
             </Card>
           </div>
         </div>
-      </section>
-
-      {/* Live Contract Info */}
-      <section className="container mx-auto px-4 py-16">
-        <Card className="max-w-4xl mx-auto p-8 bg-gradient-to-r from-primary/5 via-background to-secondary/5 border-primary/20">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs font-medium text-green-500">LIVE ON POLYGON</span>
-              </div>
-            </div>
-            
-            <h3 className="text-2xl font-bold mb-4">Smart Contracts Deployed</h3>
-            <p className="text-foreground/70 mb-6">
-              MakeMeFamous is live on Polygon Amoy testnet with fully functional smart contracts.
-            </p>
-            
-            <div className="bg-background/50 border border-border rounded-lg p-4 mb-6">
-              <div className="font-mono text-sm text-foreground/80">
-                Ready for contract deployment
-              </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              
-              <Link href="/tokens">
-                <Button size="sm">
-                  Start Trading
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </Card>
       </section>
 
       {/* CTA Section */}

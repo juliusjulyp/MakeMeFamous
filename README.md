@@ -196,7 +196,6 @@ The platform will have different badges and NFT's polygon powered. A member will
 - ✅ Real-Time Chat System**: Token-gated chat rooms with $10+ token value requirement
 
 ### **Wave 2: Blockchain Infrastructure & Smart Contracts** ✅ **COMPLETED**
-*"From mockup to mainnet: Full DeFi integration"*
 
 **🏗️ Smart Contract Architecture**
 - ✅ **SocialToken Contract**: ERC-20 with bonding curves, social access control, and revenue sharing

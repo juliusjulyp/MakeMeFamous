@@ -9,7 +9,7 @@ export const CONTRACT_ADDRESSES = {
   },
   // Polygon Amoy Testnet
   polygonAmoy: {
-    factory: undefined as Address | undefined, // Add your deployed factory address
+    factory: '0x8216A11dadb24582B429447601a4dd336AEFcC97' as Address, // Your deployed factory address
   },
 } as const;
 

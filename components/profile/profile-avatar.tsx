@@ -23,7 +23,7 @@ export function ProfileAvatar({
   className = '' 
 }: ProfileAvatarProps) {
   const addr = address || profile?.address;
-  const displayName = profile?.displayName || profile?.ensName;
+  const displayName = profile?.displayName;
   
   // Generate initials from display name or address
   const getInitials = (): string => {
@@ -62,10 +62,10 @@ export function ProfileAvatar({
     return colors[index];
   };
 
-  if (profile?.avatar) {
+  if (profile?.avatarUrl) {
     return (
       <img
-        src={profile.avatar}
+        src={profile.avatarUrl}
         alt={displayName || 'Profile'}
         className={`${sizeClasses[size]} rounded-full object-cover ${className}`}
       />

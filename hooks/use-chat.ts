@@ -11,6 +11,12 @@ export interface ChatMessage {
   userAddress: string;
   userEns?: string | null;
   timestamp: string;
+  likes: string[]; // Array of user addresses who liked
+  replyTo?: {
+    id: string;
+    message: string;
+    userAddress: string;
+  };
 }
 
 export interface ChatUser {
@@ -100,6 +106,29 @@ export function useChat({ tokenAddress }: UseChatProps) {
       setTypingUsers(prev => prev.filter(addr => addr !== userAddress));
     });
 
+    // Listen for message likes
+    socketInstance.on('message-liked', ({ messageId, userAddress: likerAddress }: { messageId: string; userAddress: string }) => {
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId) {
+          const likes = msg.likes || [];
+          if (!likes.includes(likerAddress)) {
+            return { ...msg, likes: [...likes, likerAddress] };
+          }
+        }
+        return msg;
+      }));
+    });
+
+    // Listen for message unlikes
+    socketInstance.on('message-unliked', ({ messageId, userAddress: unlikerAddress }: { messageId: string; userAddress: string }) => {
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId) {
+          return { ...msg, likes: (msg.likes || []).filter(addr => addr !== unlikerAddress) };
+        }
+        return msg;
+      }));
+    });
+
     return () => {
       socketInstance.emit('leave-token-chat', {
         tokenAddress,
@@ -113,11 +142,13 @@ export function useChat({ tokenAddress }: UseChatProps) {
       socketInstance.off('user-left');
       socketInstance.off('user-typing');
       socketInstance.off('user-stopped-typing');
+      socketInstance.off('message-liked');
+      socketInstance.off('message-unliked');
     };
   }, [address, tokenAddress]);
 
-  // Send message function
-  const sendMessage = useCallback((message: string) => {
+  // Send message function (with optional reply)
+  const sendMessage = useCallback((message: string, replyTo?: { id: string; message: string; userAddress: string }) => {
     if (!socket || !address || !hasAccess || !message.trim()) return;
 
     socket.emit('send-message', {
@@ -125,7 +156,20 @@ export function useChat({ tokenAddress }: UseChatProps) {
       message: message.trim(),
       userAddress: address,
       userEns: null, // TODO: Add ENS resolution
+      replyTo,
     });
+  }, [socket, address, hasAccess, tokenAddress]);
+
+  // Like message function
+  const likeMessage = useCallback((messageId: string) => {
+    if (!socket || !address || !hasAccess) return;
+    socket.emit('like-message', { tokenAddress, messageId, userAddress: address });
+  }, [socket, address, hasAccess, tokenAddress]);
+
+  // Unlike message function
+  const unlikeMessage = useCallback((messageId: string) => {
+    if (!socket || !address || !hasAccess) return;
+    socket.emit('unlike-message', { tokenAddress, messageId, userAddress: address });
   }, [socket, address, hasAccess, tokenAddress]);
 
   // Typing indicator functions
@@ -149,5 +193,7 @@ export function useChat({ tokenAddress }: UseChatProps) {
     sendMessage,
     startTyping,
     stopTyping,
+    likeMessage,
+    unlikeMessage,
   };
 }

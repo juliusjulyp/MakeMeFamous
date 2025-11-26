@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { parseEther, Address } from 'viem';
 import { 
   SOCIAL_TOKEN_FACTORY_ABI, 
@@ -32,6 +32,7 @@ interface TokenInfo {
 
 export function useTokenFactory() {
   const { address, chainId } = useAccount();
+  const publicClient = usePublicClient();
   const [isCreating, setIsCreating] = useState(false);
   const [createdTokenAddress, setCreatedTokenAddress] = useState<Address | null>(null);
 
@@ -118,6 +119,7 @@ export function useTokenFactory() {
           params.imageUrl,
         ],
         value: creationFee, // Pay creation fee
+        gas: BigInt(2200000), // Explicit gas limit based on actual estimate (~2.06M + buffer)
       });
 
       // Note: The actual token address will be available from the transaction receipt
@@ -147,16 +149,48 @@ export function useTokenFactory() {
   // Check if creation is in progress
   const isCreationInProgress = isCreating || isWritePending || isConfirming;
 
-  // Handle transaction confirmation
+  // Handle transaction confirmation and extract token address
   useEffect(() => {
-    if (isConfirmed && hash) {
-      setIsCreating(false);
-      // Refetch data
-      refetchStats();
-      refetchCreatorTokens();
-      refetchTrendingTokens();
-    }
-  }, [isConfirmed, hash, refetchStats, refetchCreatorTokens, refetchTrendingTokens]);
+    const extractTokenAddress = async () => {
+      if (isConfirmed && hash && publicClient && factoryAddress) {
+        setIsCreating(false);
+
+        try {
+          console.log('📦 Transaction confirmed, extracting token address...');
+
+          // Get transaction receipt
+          const receipt = await publicClient.getTransactionReceipt({ hash });
+
+          console.log('📄 Receipt logs:', receipt.logs.length);
+
+          // Find TokenCreated event in the logs
+          // TokenCreated(address indexed tokenAddress, address indexed creator, string name, string symbol, uint256 timestamp)
+          const tokenCreatedEvent = receipt.logs.find(log =>
+            log.address.toLowerCase() === factoryAddress.toLowerCase()
+          );
+
+          if (tokenCreatedEvent && tokenCreatedEvent.topics[1]) {
+            // Extract token address from the event (first indexed parameter)
+            const tokenAddress = ('0x' + tokenCreatedEvent.topics[1].slice(26)) as Address;
+            console.log('✅ Token address extracted:', tokenAddress);
+            setCreatedTokenAddress(tokenAddress);
+          } else {
+            console.error('❌ Could not find TokenCreated event in logs');
+            console.log('Available logs:', receipt.logs);
+          }
+        } catch (error) {
+          console.error('Error extracting token address:', error);
+        }
+
+        // Refetch data
+        refetchStats();
+        refetchCreatorTokens();
+        refetchTrendingTokens();
+      }
+    };
+
+    extractTokenAddress();
+  }, [isConfirmed, hash, publicClient, factoryAddress, refetchStats, refetchCreatorTokens, refetchTrendingTokens]);
 
   return {
     // State

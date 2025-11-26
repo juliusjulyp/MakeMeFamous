@@ -5,15 +5,14 @@ import { UserProfile } from '@/types/profile';
 import { ProfileAvatar } from './profile-avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  X, 
-  Edit, 
-  Calendar, 
-  MessageCircle, 
-  Trophy, 
+import {
+  X,
+  Edit,
+  Calendar,
+  MessageCircle,
+  Trophy,
   Users,
   TrendingUp,
-  Star,
   Shield
 } from 'lucide-react';
 
@@ -62,7 +61,7 @@ export function ProfileModal({
 
   if (!isOpen) return null;
 
-  const joinedDate = new Date(profile.joinedAt).toLocaleDateString('en-US', {
+  const joinedDate = new Date(profile.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -72,15 +71,6 @@ export function ProfileModal({
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const getReputationLevel = (reputation: number) => {
-    if (reputation >= 1000) return { level: 'Legend', color: 'text-yellow-500' };
-    if (reputation >= 500) return { level: 'Expert', color: 'text-purple-500' };
-    if (reputation >= 100) return { level: 'Active', color: 'text-blue-500' };
-    if (reputation >= 25) return { level: 'Member', color: 'text-green-500' };
-    return { level: 'Newcomer', color: 'text-gray-500' };
-  };
-
-  const repLevel = getReputationLevel(profile.reputation);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm pt-85">
@@ -116,31 +106,16 @@ export function ProfileModal({
             
             <div>
               <h3 className="text-2xl font-bold">
-                {profile.displayName || profile.ensName || formatAddress(profile.address)}
+                {profile.displayName || formatAddress(profile.address)}
               </h3>
-              
-              {profile.displayName && profile.ensName && (
-                <p className="text-foreground/70">{profile.ensName}</p>
-              )}
-              
+
               <p className="text-sm text-foreground/50 font-mono">
                 {formatAddress(profile.address)}
               </p>
-              
+
               {profile.bio && (
                 <p className="text-foreground/80 mt-2">{profile.bio}</p>
               )}
-            </div>
-
-            {/* Reputation Badge */}
-            <div className="flex items-center justify-center gap-2">
-              <Star className={`h-5 w-5 ${repLevel.color}`} />
-              <span className={`font-semibold ${repLevel.color}`}>
-                {repLevel.level}
-              </span>
-              <Badge variant="outline" className="ml-2">
-                {profile.reputation} pts
-              </Badge>
             </div>
           </div>
 
@@ -151,23 +126,23 @@ export function ProfileModal({
               <div className="text-2xl font-bold">{profile.stats.chatCount}</div>
               <div className="text-sm text-foreground/70">Messages</div>
             </div>
-            
+
             <div className="bg-background rounded-lg p-4 text-center">
               <TrendingUp className="h-6 w-6 mx-auto mb-2 text-green-500" />
               <div className="text-2xl font-bold">{profile.stats.tokensHeld}</div>
               <div className="text-sm text-foreground/70">Tokens</div>
             </div>
-            
+
             <div className="bg-background rounded-lg p-4 text-center">
               <Users className="h-6 w-6 mx-auto mb-2 text-purple-500" />
-              <div className="text-2xl font-bold">{profile.stats.communitiesJoined}</div>
-              <div className="text-sm text-foreground/70">Communities</div>
+              <div className="text-2xl font-bold">{profile.stats.tokensCreated}</div>
+              <div className="text-sm text-foreground/70">Created</div>
             </div>
-            
+
             <div className="bg-background rounded-lg p-4 text-center">
               <Trophy className="h-6 w-6 mx-auto mb-2 text-orange-500" />
-              <div className="text-2xl font-bold">{profile.stats.reactionsGiven}</div>
-              <div className="text-sm text-foreground/70">Reactions</div>
+              <div className="text-2xl font-bold">{profile.stats.totalTrades}</div>
+              <div className="text-sm text-foreground/70">Trades</div>
             </div>
           </div>
 

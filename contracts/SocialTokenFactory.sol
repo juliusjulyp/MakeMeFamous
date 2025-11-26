@@ -84,6 +84,7 @@ contract SocialTokenFactory is Ownable, ReentrancyGuard, Pausable {
         require(msg.value >= CREATION_FEE, "Insufficient creation fee");
         require(bytes(_name).length > 0, "Name cannot be empty");
         require(bytes(_symbol).length > 0, "Symbol cannot be empty");
+        require(bytes(_imageUrl).length <= 500, "Image URL too long - use IPFS or Cloudinary");
         require(creatorTokenCount[msg.sender] < MAX_TOKENS_PER_USER, "Max tokens per user exceeded");
         
         // Deploy new SocialToken contract

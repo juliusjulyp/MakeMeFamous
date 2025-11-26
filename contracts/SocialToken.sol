@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /**
  * @title SocialToken
  * @dev ERC20 token with social features and bonding curve mechanics
- * Each token created through MakeMeFamous platform uses this template
+ * Each token created through MakeMeFamous platform will be using this template
  */
 contract SocialToken is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
     
@@ -63,10 +63,12 @@ contract SocialToken is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
             isVerified: false
         });
         
-        
+
         // Mint initial supply to creator
         if (_initialSupply > 0) {
             _mint(_creator, _initialSupply);
+            // Update creator's social membership status
+            _updateSocialMembership(_creator);
         }
     }
     

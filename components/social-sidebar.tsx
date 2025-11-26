@@ -1,17 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { useAccount } from "wagmi";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  MessageCircle, 
-  Users, 
-  Calendar, 
-  TrendingUp, 
-  Video, 
-  Mic,
+import {
+  MessageCircle,
+  Users,
   Crown,
   Diamond,
   Flame
@@ -28,14 +22,6 @@ interface ChatRoom {
   isLive?: boolean;
 }
 
-interface LiveEvent {
-  id: string;
-  title: string;
-  type: "ama" | "launch" | "debate" | "party";
-  viewers: number;
-  startTime: string;
-  isLive: boolean;
-}
 
 const MOCK_CHAT_ROOMS: ChatRoom[] = [
   {
@@ -68,24 +54,6 @@ const MOCK_CHAT_ROOMS: ChatRoom[] = [
   }
 ];
 
-const MOCK_LIVE_EVENTS: LiveEvent[] = [
-  {
-    id: "community-showcase",
-    title: "Community Token Showcase",
-    type: "party",
-    viewers: 1247,
-    startTime: "Live now",
-    isLive: true
-  },
-  {
-    id: "pepe-ama",
-    title: "PEPE 2.0 Dev AMA",
-    type: "ama",
-    viewers: 423,
-    startTime: "In 30m",
-    isLive: false
-  }
-];
 
 const getTierIcon = (tier: ChatRoom["tier"]) => {
   switch (tier) {
@@ -106,46 +74,28 @@ const getTierColor = (tier: ChatRoom["tier"]) => {
 };
 
 export function SocialSidebar() {
-  const [activeTab, setActiveTab] = useState<"chats" | "events">("chats");
   const { isConnected } = useAccount();
 
   return (
     <div className="w-80 border-l border-border bg-surface/30 backdrop-blur-sm">
       {/* Header */}
       <div className="p-4 border-b border-border">
-        <div className="flex gap-2">
-          <Button
-            variant={activeTab === "chats" ? "primary" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("chats")}
-            className="flex-1 gap-2"
-          >
-            <MessageCircle className="h-4 w-4" />
-            Chats
-          </Button>
-          <Button
-            variant={activeTab === "events" ? "primary" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("events")}
-            className="flex-1 gap-2"
-          >
-            <Calendar className="h-4 w-4" />
-            Events
-          </Button>
+        <div className="flex items-center gap-2">
+          <MessageCircle className="h-4 w-4" />
+          <span className="font-medium">Token Chats</span>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {activeTab === "chats" ? (
-          <div className="p-4 space-y-3">
-            {/* Live Chats Header */}
-            <div className="mb-4">
-              <h3 className="text-sm font-medium text-foreground/70 mb-3">Live Token Chats</h3>
-              {!isConnected && (
-                <p className="text-xs text-foreground/50">Connect your wallet to join token-gated communities</p>
-              )}
-            </div>
+        <div className="p-4 space-y-3">
+          {/* Live Chats Header */}
+          <div className="mb-4">
+            <h3 className="text-sm font-medium text-foreground/70 mb-3">Live Token Chats</h3>
+            {!isConnected && (
+              <p className="text-xs text-foreground/50">Connect your wallet to join token-gated chats</p>
+            )}
+          </div>
 
             {/* Chat Rooms */}
             <div className="space-y-2">
@@ -176,53 +126,7 @@ export function SocialSidebar() {
                 </Card>
               ))}
             </div>
-          </div>
-        ) : (
-          <div className="p-4 space-y-3">
-            {/* Live Events */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-foreground/70 mb-3">Live & Upcoming</h3>
-              {MOCK_LIVE_EVENTS.map((event) => (
-                <Card key={event.id} className="cursor-pointer hover:bg-surface transition-colors">
-                  <CardContent className="p-3">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {event.type === "ama" && <Mic className="h-3 w-3 text-blue-400" />}
-                        {event.type === "party" && <Video className="h-3 w-3 text-purple-400" />}
-                        {event.isLive && (
-                          <Badge variant="primary" className="text-xs px-1 py-0">
-                            Live
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-foreground/60">
-                        <Users className="h-3 w-3" />
-                        {event.viewers}
-                      </div>
-                    </div>
-                    <h4 className="text-sm font-medium mb-1">{event.title}</h4>
-                    <span className="text-xs text-foreground/50">{event.startTime}</span>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Create Event CTA */}
-            <Card className="border-dashed border-secondary/50 bg-secondary/5">
-              <CardContent className="p-4 text-center">
-                <Video className="h-6 w-6 mx-auto mb-2 text-secondary" />
-                <p className="text-sm font-medium mb-2">Host an Event</p>
-                <p className="text-xs text-foreground/60 mb-3">
-                  Launch party, AMA, or community call
-                </p>
-                <Button size="sm" variant="outline" className="gap-2">
-                  <Calendar className="h-3 w-3" />
-                  Schedule
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

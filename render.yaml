@@ -1,0 +1,31 @@
+# Render Blueprint for MakeMeFamous
+# This file helps Render understand how to deploy your app
+
+services:
+  - type: web
+    name: makemefamous
+    env: node
+    region: oregon # Choose: oregon, frankfurt, singapore
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false # You'll add this manually in Render dashboard
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+        sync: false
+      - key: NEXT_PUBLIC_ALCHEMY_ID
+        sync: false

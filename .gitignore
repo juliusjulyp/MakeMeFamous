@@ -125,3 +125,15 @@ temp/
 # Wallet files
 wallet.json
 keystore/
+
+# Private documentation and implementation notes
+futureImplementations.md
+nextimplementations.md
+*.private.md
+notes.md
+NOTES.md
+
+# SQL schema files (run these manually in Supabase dashboard)
+supabase-schema.sql
+supabase-likes-schema.sql
+*.schema.sql
