@@ -73,35 +73,35 @@ export default function TokenPage() {
     }
   }, [tokenAddress]);
 
-  // Fetch token info from blockchain (poll every 3 seconds for price updates)
+  // Fetch token info from blockchain (poll every 45 seconds for price updates)
   const { data: tokenInfo } = useReadContract({
     address: tokenAddress as Address,
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'getTokenInfo',
     query: {
-      refetchInterval: 3000, // Refetch every 3 seconds to update price after trades
+      refetchInterval: 45000, // Refetch every 45 seconds to update price after trades
     },
   });
 
-  // Fetch user balance (poll every 3 seconds)
+  // Fetch user balance (poll every 45 seconds)
   const { data: userBalance } = useReadContract({
     address: tokenAddress as Address,
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
     query: {
-      refetchInterval: 3000,
+      refetchInterval: 45000,
     },
   });
 
-  // Fetch social access (poll every 5 seconds)
+  // Fetch social access (poll every 45 seconds)
   const { data: socialAccess } = useReadContract({
     address: tokenAddress as Address,
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'checkSocialAccess',
     args: address ? [address] : undefined,
     query: {
-      refetchInterval: 5000,
+      refetchInterval: 45000,
     },
   });
 

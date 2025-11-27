@@ -36,7 +36,9 @@ export function useTokenFactory() {
   const [isCreating, setIsCreating] = useState(false);
   const [createdTokenAddress, setCreatedTokenAddress] = useState<Address | null>(null);
 
-  const factoryAddress = chainId ? getFactoryAddress(chainId) : undefined;
+  // Default to Polygon Amoy (80002) when no wallet connected, so users can still browse tokens
+  const activeChainId = chainId || 80002;
+  const factoryAddress = getFactoryAddress(activeChainId);
 
   // Write contract hook for creating tokens
   const { 
@@ -60,38 +62,42 @@ export function useTokenFactory() {
     address: factoryAddress,
     abi: SOCIAL_TOKEN_FACTORY_ABI,
     functionName: 'CREATION_FEE',
+    chainId: activeChainId,
   });
 
   // Read platform stats
-  const { 
+  const {
     data: platformStats,
-    refetch: refetchStats 
+    refetch: refetchStats
   } = useReadContract({
     address: factoryAddress,
     abi: SOCIAL_TOKEN_FACTORY_ABI,
     functionName: 'getPlatformStats',
+    chainId: activeChainId,
   });
 
   // Get creator's tokens
-  const { 
+  const {
     data: creatorTokens,
-    refetch: refetchCreatorTokens 
+    refetch: refetchCreatorTokens
   } = useReadContract({
     address: factoryAddress,
     abi: SOCIAL_TOKEN_FACTORY_ABI,
     functionName: 'getCreatorTokens',
     args: address ? [address] : undefined,
+    chainId: activeChainId,
   });
 
   // Get trending tokens
-  const { 
+  const {
     data: trendingTokens,
-    refetch: refetchTrendingTokens 
+    refetch: refetchTrendingTokens
   } = useReadContract({
     address: factoryAddress,
     abi: SOCIAL_TOKEN_FACTORY_ABI,
     functionName: 'getTrendingTokens',
     args: [BigInt(10)], // Get top 10 trending tokens
+    chainId: activeChainId,
   });
 
   // Create a new social token

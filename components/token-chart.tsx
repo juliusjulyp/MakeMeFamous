@@ -38,12 +38,17 @@ export function TokenChart({ tokenAddress }: TokenChartProps) {
   const [timeframe, setTimeframe] = useState<string>('1H');
   const [pendingBuyAmount, setPendingBuyAmount] = useState('');
   const [pendingSellAmount, setPendingSellAmount] = useState('');
+  const [isLoadingChart, setIsLoadingChart] = useState(true);
+  const [hasData, setHasData] = useState(false);
 
   // Read token info
-  const { data: tokenInfo } = useReadContract({
+  const { data: tokenInfo, error: tokenInfoError } = useReadContract({
     address: tokenAddress,
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'getTokenInfo',
+    query: {
+      refetchInterval: 45000,
+    },
   });
 
   const { data: userBalance } = useReadContract({
@@ -136,11 +141,19 @@ export function TokenChart({ tokenAddress }: TokenChartProps) {
       if (!publicClient || !candleSeriesRef.current) return;
 
       try {
+        // Verify contract exists before fetching data
+        const code = await publicClient.getCode({ address: tokenAddress });
+        if (!code || code === '0x') {
+          console.error('Token contract not found at address:', tokenAddress);
+          setHasData(false);
+          setIsLoadingChart(false);
+          return;
+        }
         const currentBlock = await publicClient.getBlockNumber();
         // Fetch from 50,000 blocks ago (approximately 1-2 days on Polygon Amoy)
         const fromBlock = currentBlock > BigInt(50000) ? currentBlock - BigInt(50000) : BigInt(0);
 
-        // Fetch buy events
+        // Fetch buy events - use currentBlock instead of 'latest' to avoid exceeding range
         const buyLogs = await publicClient.getLogs({
           address: tokenAddress,
           event: {
@@ -153,10 +166,10 @@ export function TokenChart({ tokenAddress }: TokenChartProps) {
             ],
           },
           fromBlock,
-          toBlock: 'latest',
+          toBlock: currentBlock,
         });
 
-        // Fetch sell events
+        // Fetch sell events - use currentBlock instead of 'latest' to avoid exceeding range
         const sellLogs = await publicClient.getLogs({
           address: tokenAddress,
           event: {
@@ -169,7 +182,7 @@ export function TokenChart({ tokenAddress }: TokenChartProps) {
             ],
           },
           fromBlock,
-          toBlock: 'latest',
+          toBlock: currentBlock,
         });
 
         // Process events into price points
@@ -207,11 +220,13 @@ export function TokenChart({ tokenAddress }: TokenChartProps) {
 
         if (candleData.length > 0) {
           candleSeriesRef.current.setData(candleData);
+          setHasData(true);
           // Only auto-fit on first load, don't reset user's zoom/scroll position
           if (isFirstLoad.current) {
             chartRef.current?.timeScale().fitContent();
             isFirstLoad.current = false;
           }
+          setIsLoadingChart(false);
         } else {
           // Show current price as single candle if no trades
           if (tokenInfo) {
@@ -224,25 +239,32 @@ export function TokenChart({ tokenAddress }: TokenChartProps) {
               low: currentPrice * 0.99,
               close: currentPrice,
             }]);
+            setHasData(true);
             // Only auto-fit on first load
             if (isFirstLoad.current) {
               chartRef.current?.timeScale().fitContent();
               isFirstLoad.current = false;
             }
+          } else {
+            setHasData(false);
           }
+          setIsLoadingChart(false);
         }
       } catch (error) {
         console.error('Error fetching price data:', error);
+        setHasData(false);
+        // Stop loader on error and show empty chart
+        setIsLoadingChart(false);
       }
     }
 
     // Initial fetch
     fetchPriceData();
 
-    // Poll for new data every 10 seconds
+    // Poll for new data every 45 seconds
     const interval = setInterval(() => {
       fetchPriceData();
-    }, 10000);
+    }, 45000);
 
     return () => clearInterval(interval);
   }, [publicClient, tokenAddress, timeframe, tokenInfo]);
@@ -250,6 +272,7 @@ export function TokenChart({ tokenAddress }: TokenChartProps) {
   // Reset first load flag when timeframe changes (so chart auto-fits on timeframe switch)
   useEffect(() => {
     isFirstLoad.current = true;
+    setIsLoadingChart(true); // Show loader when changing timeframe
   }, [timeframe]);
 
   // Aggregate price points into OHLC candles
@@ -425,7 +448,17 @@ export function TokenChart({ tokenAddress }: TokenChartProps) {
       </div>
 
       {/* Chart */}
-      <div ref={chartContainerRef} className="w-full" />
+      <div className="relative" style={{ minHeight: '900px' }}>
+        {isLoadingChart && (
+          <div className="absolute inset-0 flex items-center justify-center bg-surface/80 backdrop-blur-sm z-10 rounded-lg">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-foreground/70">Loading price data...</p>
+            </div>
+          </div>
+        )}
+        <div ref={chartContainerRef} className="w-full" style={{ minHeight: '900px' }} />
+      </div>
     </Card>
   );
 }

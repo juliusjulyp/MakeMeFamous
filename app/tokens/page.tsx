@@ -61,7 +61,7 @@ export default function TokensPage() {
 
         {/* Platform Stats */}
         {platformStats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <Card className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
@@ -73,7 +73,7 @@ export default function TokensPage() {
                 </div>
               </div>
             </Card>
-            
+
             <Card className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500/10 rounded-lg">
@@ -87,7 +87,7 @@ export default function TokensPage() {
                 </div>
               </div>
             </Card>
-            
+
             <Card className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/10 rounded-lg">
@@ -96,20 +96,6 @@ export default function TokensPage() {
                 <div>
                   <p className="text-sm text-foreground/60">Active Tokens</p>
                   <p className="text-2xl font-bold">{platformStats.activeTokens}</p>
-                </div>
-              </div>
-            </Card>
-            
-            <Card className="p-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-500/10 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-yellow-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-foreground/60">Platform Revenue</p>
-                  <p className="text-2xl font-bold">
-                    {formatEther(platformStats.totalRevenue)}Ⓜ
-                  </p>
                 </div>
               </div>
             </Card>
@@ -205,31 +191,37 @@ function TokenCard({
   const [copied, setCopied] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
 
   const { data: tokenInfo } = useReadContract({
     address: tokenAddress as Address,
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'getTokenInfo',
     query: {
-      refetchInterval: 5000, // Poll every 5 seconds for price updates
+      refetchInterval: 45000, // Poll every 45 seconds for price updates
     },
   });
 
   // Fetch image from Supabase
   useEffect(() => {
     const fetchImage = async () => {
+      setImageLoading(true);
       try {
         const response = await fetch(`/api/tokens?address=${tokenAddress}`);
         if (response.ok) {
           const data = await response.json();
-          setImageUrl(data.token?.image_url || null);
+          const url = data.token?.image_url || null;
+          setImageUrl(url);
+          setImageLoading(false);
         } else {
           // Silently fail for tokens without metadata (old tokens)
           setImageUrl(null);
+          setImageLoading(false);
         }
       } catch (error) {
         // Silently fail - just show gradient fallback
         setImageUrl(null);
+        setImageLoading(false);
       }
     };
     fetchImage();
@@ -384,11 +376,14 @@ function TokenCard({
       <Card className="overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer relative">
         {/* Token Image */}
         <div className="relative aspect-[3/2] bg-gradient-to-br from-primary/20 to-secondary/20">
-          {imageUrl ? (
+          {imageLoading ? (
+            <div className="w-full h-full bg-gradient-to-br from-surface to-surface/50 animate-pulse"></div>
+          ) : imageUrl ? (
             <img
               src={imageUrl}
               alt={name}
               className="w-full h-full object-cover"
+              loading="eager"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">

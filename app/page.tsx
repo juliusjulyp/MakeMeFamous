@@ -66,13 +66,13 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-8">Platform Statistics</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="p-6 text-center bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
                 <TrendingUp className="h-8 w-8 mx-auto mb-3 text-primary" />
                 <div className="text-3xl font-bold mb-1">{platformStats.totalTokens}</div>
                 <div className="text-sm text-foreground/60">Tokens Created</div>
               </Card>
-              
+
               <Card className="p-6 text-center bg-gradient-to-br from-green-500/5 to-green-500/10 border-green-500/20">
                 <DollarSign className="h-8 w-8 mx-auto mb-3 text-green-500" />
                 <div className="text-3xl font-bold mb-1">
@@ -80,19 +80,11 @@ export default function HomePage() {
                 </div>
                 <div className="text-sm text-foreground/60">Total Volume</div>
               </Card>
-              
+
               <Card className="p-6 text-center bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20">
                 <Users className="h-8 w-8 mx-auto mb-3 text-blue-500" />
                 <div className="text-3xl font-bold mb-1">{platformStats.activeTokens}</div>
                 <div className="text-sm text-foreground/60">Active Tokens</div>
-              </Card>
-              
-              <Card className="p-6 text-center bg-gradient-to-br from-yellow-500/5 to-yellow-500/10 border-yellow-500/20">
-                <Flame className="h-8 w-8 mx-auto mb-3 text-yellow-500" />
-                <div className="text-3xl font-bold mb-1">
-                  {formatEther(platformStats.totalRevenue)}Ⓜ
-                </div>
-                <div className="text-sm text-foreground/60">Platform Revenue</div>
               </Card>
             </div>
           </div>

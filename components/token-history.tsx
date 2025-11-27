@@ -36,7 +36,7 @@ export function TokenHistory({ tokenAddress }: TokenHistoryProps) {
         // Or from block 0 if token is very new
         const fromBlock = currentBlock > BigInt(50000) ? currentBlock - BigInt(50000) : BigInt(0);
 
-        // Fetch buy events
+        // Fetch buy events - use currentBlock instead of 'latest' to avoid exceeding range
         const buyLogs = await publicClient.getLogs({
           address: tokenAddress,
           event: {
@@ -49,10 +49,10 @@ export function TokenHistory({ tokenAddress }: TokenHistoryProps) {
             ],
           },
           fromBlock,
-          toBlock: 'latest',
+          toBlock: currentBlock,
         });
 
-        // Fetch sell events
+        // Fetch sell events - use currentBlock instead of 'latest' to avoid exceeding range
         const sellLogs = await publicClient.getLogs({
           address: tokenAddress,
           event: {
@@ -65,7 +65,7 @@ export function TokenHistory({ tokenAddress }: TokenHistoryProps) {
             ],
           },
           fromBlock,
-          toBlock: 'latest',
+          toBlock: currentBlock,
         });
 
         // Process buy transactions
@@ -101,9 +101,10 @@ export function TokenHistory({ tokenAddress }: TokenHistoryProps) {
         // Combine and sort by timestamp (newest first)
         const allTxs = [...buyTxs, ...sellTxs].sort((a, b) => b.timestamp - a.timestamp);
         setTransactions(allTxs);
+        setIsLoading(false); // Only stop loader when data successfully loads
       } catch (error) {
         console.error('Error fetching transaction history:', error);
-      } finally {
+        // Stop loader on error so user knows fetch completed
         setIsLoading(false);
       }
     }
@@ -111,10 +112,10 @@ export function TokenHistory({ tokenAddress }: TokenHistoryProps) {
     // Initial fetch
     fetchTransactions();
 
-    // Poll for new transactions every 10 seconds
+    // Poll for new transactions every 45 seconds
     const interval = setInterval(() => {
       fetchTransactions();
-    }, 10000);
+    }, 45000);
 
     return () => clearInterval(interval);
   }, [publicClient, tokenAddress]);
@@ -149,8 +150,9 @@ export function TokenHistory({ tokenAddress }: TokenHistoryProps) {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="h-6 w-6 animate-spin text-foreground/50" />
+        <div className="flex flex-col items-center justify-center h-48 gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-foreground/70">Loading transaction history...</p>
         </div>
       ) : transactions.length === 0 ? (
         <div className="text-center text-foreground/50 py-8">

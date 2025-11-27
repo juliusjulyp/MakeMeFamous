@@ -52,7 +52,7 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'getTokenInfo',
     query: {
-      refetchInterval: 3000,
+      refetchInterval: 45000,
     },
   });
 
@@ -62,7 +62,7 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
     query: {
-      refetchInterval: 3000,
+      refetchInterval: 45000,
     },
   });
 
@@ -72,7 +72,7 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     functionName: 'getBuyPrice',
     args: buyAmount ? [parseEther(buyAmount)] : [BigInt(0)],
     query: {
-      refetchInterval: 2000, // Faster refresh for trading prices
+      refetchInterval: 45000,
     },
   });
 
@@ -82,7 +82,7 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     functionName: 'getSellPrice',
     args: sellAmount && userBalance ? [parseEther(sellAmount)] : [BigInt(0)],
     query: {
-      refetchInterval: 2000,
+      refetchInterval: 45000,
     },
   });
 
@@ -92,7 +92,7 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     functionName: 'checkSocialAccess',
     args: address ? [address] : undefined,
     query: {
-      refetchInterval: 5000,
+      refetchInterval: 45000,
     },
   });
 

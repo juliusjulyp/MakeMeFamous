@@ -5,7 +5,7 @@ import { Server } from 'socket.io'
 import { createPublicClient, http, formatEther } from 'viem'
 import { polygonAmoy } from 'viem/chains'
 
-// Social Token ABI ( for our needs)
+// Social Token ABI 
 const SOCIAL_TOKEN_ABI = [
   {
     inputs: [{ name: "_user", type: "address" }],
@@ -30,15 +30,28 @@ const SOCIAL_TOKEN_ABI = [
   }
 ]
 
-// Create blockchain client
+// RPC configuration
 const publicClient = createPublicClient({
   chain: polygonAmoy,
-  transport: http()
+  transport: http('https://polygon-amoy-bor-rpc.publicnode.com', {
+    batch: false, 
+    retryCount: 5,
+    timeout: 30000,
+  })
 })
 
 // Helper function to check social access
 async function checkTokenAccess(tokenAddress, userAddress) {
   try {
+    console.log(`Checking access for user ${userAddress} on token ${tokenAddress}`)
+
+    // First verify the contract exists by checking if it has code
+    const code = await publicClient.getCode({ address: tokenAddress })
+    if (!code || code === '0x') {
+      console.error(`No contract found at address ${tokenAddress}`)
+      return { hasAccess: false, error: 'Token contract not found. This token may not exist or was not deployed properly.' }
+    }
+
     // Check if user has social access via smart contract
     const hasAccess = await publicClient.readContract({
       address: tokenAddress,
@@ -47,10 +60,17 @@ async function checkTokenAccess(tokenAddress, userAddress) {
       args: [userAddress]
     })
 
+    console.log(`Access check result: ${hasAccess}`)
     return { hasAccess, error: null }
   } catch (error) {
     console.error('Error checking token access:', error)
-    return { hasAccess: false, error: error.message }
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      tokenAddress,
+      userAddress
+    })
+    return { hasAccess: false, error: error.message || 'Unable to verify token access' }
   }
 }
 

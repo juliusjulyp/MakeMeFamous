@@ -376,29 +376,35 @@ function ActivityTab() {
 // Card for tokens the user created
 function CreatedTokenCard({ tokenAddress }: { tokenAddress: string }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
 
   const { data: tokenInfo } = useReadContract({
     address: tokenAddress as Address,
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'getTokenInfo',
     query: {
-      refetchInterval: 5000, // Poll every 5 seconds for price updates
+      refetchInterval: 45000, // Poll every 5 seconds for price updates
     },
   });
 
   // Fetch image from Supabase
   useEffect(() => {
     const fetchImage = async () => {
+      setImageLoading(true);
       try {
         const response = await fetch(`/api/tokens?address=${tokenAddress}`);
         if (response.ok) {
           const data = await response.json();
-          setImageUrl(data.token?.image_url || null);
+          const url = data.token?.image_url || null;
+          setImageUrl(url);
+          setImageLoading(false);
         } else {
           setImageUrl(null);
+          setImageLoading(false);
         }
       } catch (error) {
         setImageUrl(null);
+        setImageLoading(false);
       }
     };
     fetchImage();
@@ -422,11 +428,14 @@ function CreatedTokenCard({ tokenAddress }: { tokenAddress: string }) {
     <Link href={`/token/${tokenAddress}`}>
       <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-primary/20">
         <div className="flex items-center gap-3 mb-4">
-          {imageUrl ? (
+          {imageLoading ? (
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-surface to-surface/50 animate-pulse"></div>
+          ) : imageUrl ? (
             <img
               src={imageUrl}
               alt={name}
               className="w-10 h-10 rounded-full object-cover"
+              loading="eager"
             />
           ) : (
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center">
@@ -471,13 +480,14 @@ function HoldingCard({
   userAddress: Address;
 }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
 
   const { data: tokenInfo } = useReadContract({
     address: tokenAddress as Address,
     abi: SOCIAL_TOKEN_ABI,
     functionName: 'getTokenInfo',
     query: {
-      refetchInterval: 5000,
+      refetchInterval: 45000,
     },
   });
 
@@ -487,7 +497,7 @@ function HoldingCard({
     functionName: 'balanceOf',
     args: [userAddress],
     query: {
-      refetchInterval: 5000,
+      refetchInterval: 45000,
     },
   });
 
@@ -497,23 +507,28 @@ function HoldingCard({
     functionName: 'checkSocialAccess',
     args: [userAddress],
     query: {
-      refetchInterval: 5000,
+      refetchInterval: 45000,
     },
   });
 
   // Fetch image from Supabase
   useEffect(() => {
     const fetchImage = async () => {
+      setImageLoading(true);
       try {
         const response = await fetch(`/api/tokens?address=${tokenAddress}`);
         if (response.ok) {
           const data = await response.json();
-          setImageUrl(data.token?.image_url || null);
+          const url = data.token?.image_url || null;
+          setImageUrl(url);
+          setImageLoading(false);
         } else {
           setImageUrl(null);
+          setImageLoading(false);
         }
       } catch (error) {
         setImageUrl(null);
+        setImageLoading(false);
       }
     };
     fetchImage();
@@ -543,11 +558,14 @@ function HoldingCard({
     <Link href={`/token/${tokenAddress}`}>
       <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
         <div className="flex items-center gap-3 mb-4">
-          {imageUrl ? (
+          {imageLoading ? (
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-surface to-surface/50 animate-pulse"></div>
+          ) : imageUrl ? (
             <img
               src={imageUrl}
               alt={name}
               className="w-10 h-10 rounded-full object-cover"
+              loading="eager"
             />
           ) : (
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center">
