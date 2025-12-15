@@ -9,6 +9,7 @@ import { useAccount } from "wagmi";
 import { Flame, Sparkles, Trophy, Users, TrendingUp, DollarSign, Plus, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { formatEther } from "viem";
+import { PriceDisplay } from "@/components/ui/price-display";
 
 export default function HomePage() {
   const { platformStats, trendingTokens } = useTokenFactory();
@@ -75,9 +76,12 @@ export default function HomePage() {
 
               <Card className="p-6 text-center bg-gradient-to-br from-green-500/5 to-green-500/10 border-green-500/20">
                 <DollarSign className="h-8 w-8 mx-auto mb-3 text-green-500" />
-                <div className="text-3xl font-bold mb-1">
-                  {formatEther(platformStats.totalVolume)}Ⓜ
-                </div>
+                <PriceDisplay
+                  maticAmount={formatEther(platformStats.totalVolume)}
+                  size="lg"
+                  showBoth={true}
+                  className="justify-center mb-1"
+                />
                 <div className="text-sm text-foreground/60">Total Volume</div>
               </Card>
 

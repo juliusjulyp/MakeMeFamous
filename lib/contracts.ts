@@ -175,7 +175,21 @@ export const SOCIAL_TOKEN_ABI = [
     outputs: [{ name: '', type: 'uint256' }],
   },
   {
+    name: 'getTokensForMatic',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: '_maticAmount', type: 'uint256' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
     name: 'buyTokens',
+    type: 'function',
+    stateMutability: 'payable',
+    inputs: [],
+    outputs: [],
+  },
+  {
+    name: 'buyWithExactMatic',
     type: 'function',
     stateMutability: 'payable',
     inputs: [],
@@ -247,6 +261,93 @@ export const SOCIAL_TOKEN_ABI = [
     ],
   },
   
+  // Graduation functions
+  {
+    name: 'canGraduate',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+  {
+    name: 'graduateToQuickSwap',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [],
+    outputs: [],
+  },
+  {
+    name: 'getGraduationProgress',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [
+      { name: 'supplyProgress', type: 'uint256' },
+      { name: 'liquidityProgress', type: 'uint256' },
+      { name: 'isReady', type: 'bool' },
+      { name: 'tokensRemaining', type: 'uint256' },
+      { name: 'maticRemaining', type: 'uint256' },
+    ],
+  },
+  {
+    name: 'hasGraduated',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+  {
+    name: 'liquidityPool',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'address' }],
+  },
+  {
+    name: 'graduatedAt',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+
+  // Constants
+  {
+    name: 'MAX_SUPPLY',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'GRADUATION_SUPPLY',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'LP_SUPPLY',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'MIN_LIQUIDITY',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'QUICKSWAP_ROUTER',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'address' }],
+  },
+
   // Events
   {
     name: 'TokenPurchased',
@@ -264,6 +365,18 @@ export const SOCIAL_TOKEN_ABI = [
       { name: 'seller', type: 'address', indexed: true },
       { name: 'amount', type: 'uint256', indexed: false },
       { name: 'ethReceived', type: 'uint256', indexed: false },
+    ],
+  },
+  {
+    name: 'Graduated',
+    type: 'event',
+    inputs: [
+      { name: 'token', type: 'address', indexed: true },
+      { name: 'maticLiquidity', type: 'uint256', indexed: false },
+      { name: 'tokenLiquidity', type: 'uint256', indexed: false },
+      { name: 'lpTokensBurned', type: 'uint256', indexed: false },
+      { name: 'pair', type: 'address', indexed: true },
+      { name: 'timestamp', type: 'uint256', indexed: false },
     ],
   },
 ] as const;

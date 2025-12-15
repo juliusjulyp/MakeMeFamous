@@ -8,9 +8,11 @@ import { TokenChat } from '@/components/chat/token-chat';
 import { TokenHistory } from '@/components/token-history';
 import { TokenChart } from '@/components/token-chart';
 import { TokenTrading } from '@/components/token-trading';
+import GraduationProgress from '@/components/graduation-progress';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PriceDisplay, MaticPriceIndicator } from '@/components/ui/price-display';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { SOCIAL_TOKEN_ABI } from '@/lib/contracts';
@@ -174,36 +176,59 @@ export default function TokenPage() {
                 </div>
 
                 <div className="flex items-center gap-6">
+                  {/* Price with USD */}
                   <div className="text-center">
-                    <div className="text-lg font-bold">{formatPrice(formatEther(tokenInfo[6] as bigint))} MATIC</div>
-                    <div className="text-xs text-foreground/60">Price</div>
+                    <PriceDisplay
+                      maticAmount={formatEther(tokenInfo[6] as bigint)}
+                      size="md"
+                      showBoth={true}
+                    />
+                    <div className="text-xs text-foreground/60 mt-1">Price per Token</div>
                   </div>
+
+                  {/* Market Cap with USD */}
                   <div className="text-center">
-                    <div className="text-lg font-bold">
-                      {formatNumber(
-                        parseFloat(formatEther(tokenInfo[6] as bigint)) * parseFloat(formatEther(tokenInfo[2] as bigint))
-                      )} MATIC
-                    </div>
-                    <div className="text-xs text-foreground/60">Market Cap</div>
+                    <PriceDisplay
+                      maticAmount={parseFloat(formatEther(tokenInfo[6] as bigint)) * parseFloat(formatEther(tokenInfo[2] as bigint))}
+                      size="md"
+                      showBoth={true}
+                    />
+                    <div className="text-xs text-foreground/60 mt-1">Market Cap</div>
                   </div>
+
                   <div className="text-center">
                     <div className="text-lg font-bold">{Number(tokenInfo[3])}</div>
                     <div className="text-xs text-foreground/60">Members</div>
                   </div>
+
                   <div className="text-center">
                     <div className="text-lg font-bold">{formatNumber(formatEther(tokenInfo[2] as bigint))}</div>
                     <div className="text-xs text-foreground/60">Supply</div>
                   </div>
+
+                  {/* User Balance with USD */}
                   {userBalance && (
                     <div className="text-center">
                       <div className="text-lg font-bold">{formatNumber(formatEther(userBalance))}</div>
                       <div className="text-xs text-foreground/60">Your Balance</div>
+                      <PriceDisplay
+                        maticAmount={formatEther(userBalance)}
+                        size="sm"
+                        showBoth={false}
+                        primaryCurrency="usd"
+                        className="text-xs text-foreground/50 mt-1"
+                      />
                     </div>
                   )}
                 </div>
               </div>
             </Card>
           )}
+        </div>
+
+        {/* Graduation Progress - Prominent placement */}
+        <div className="mb-6">
+          <GraduationProgress tokenAddress={tokenAddress as Address} />
         </div>
 
         <div className="flex gap-6">

@@ -5,6 +5,7 @@ import { usePublicClient } from 'wagmi';
 import { formatEther, Address } from 'viem';
 import { Card } from '@/components/ui/card';
 import { ArrowUpRight, ArrowDownRight, History, Loader2 } from 'lucide-react';
+import { PriceDisplay } from '@/components/ui/price-display';
 
 interface Transaction {
   type: 'buy' | 'sell';
@@ -201,9 +202,13 @@ export function TokenHistory({ tokenAddress }: TokenHistoryProps) {
                 <div className="text-sm font-medium">
                   {formatAmount(tx.amount)} tokens
                 </div>
-                <div className="text-xs text-foreground/50">
-                  {parseFloat(tx.ethAmount).toFixed(4)} MATIC
-                </div>
+                <PriceDisplay
+                  maticAmount={tx.ethAmount}
+                  size="sm"
+                  showBoth={false}
+                  primaryCurrency="usd"
+                  className="text-xs text-foreground/50"
+                />
               </div>
             </a>
           ))}

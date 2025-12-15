@@ -127,11 +127,9 @@ wallet.json
 keystore/
 
 # Private documentation and implementation notes
-futureImplementations.md
-nextimplementations.md
-*.private.md
-notes.md
-NOTES.md
+# Ignore all .md files except README.md
+*.md
+!README.md
 
 # SQL schema files (run these manually in Supabase dashboard)
 supabase-schema.sql

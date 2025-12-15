@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SOCIAL_TOKEN_ABI } from '@/lib/contracts';
+import { PriceDisplay, MaticPriceIndicator } from '@/components/ui/price-display';
 import { TrendingUp, TrendingDown, DollarSign, Users, ArrowUpDown, Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 
 // Format price with max 6 decimals
@@ -40,7 +41,7 @@ interface TokenTradingProps {
 
 export function TokenTrading({ tokenAddress }: TokenTradingProps) {
   const { address, isConnected } = useAccount();
-  const [buyAmount, setBuyAmount] = useState('');
+  const [maticAmount, setMaticAmount] = useState(''); // Changed: Now user enters MATIC amount
   const [sellAmount, setSellAmount] = useState('');
   const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy');
   const [txState, setTxState] = useState<TransactionState>({ status: 'idle', message: '' });
@@ -66,11 +67,12 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     },
   });
 
-  const { data: buyPrice } = useReadContract({
+  // NEW: Get estimated tokens for MATIC amount
+  const { data: estimatedTokens } = useReadContract({
     address: tokenAddress,
     abi: SOCIAL_TOKEN_ABI,
-    functionName: 'getBuyPrice',
-    args: buyAmount ? [parseEther(buyAmount)] : [BigInt(0)],
+    functionName: 'getTokensForMatic',
+    args: maticAmount ? [parseEther(maticAmount)] : [BigInt(0)],
     query: {
       refetchInterval: 45000,
     },
@@ -118,18 +120,19 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
   });
 
   // Track pending amounts for success messages
-  const [pendingBuyAmount, setPendingBuyAmount] = useState('');
+  const [pendingMaticAmount, setPendingMaticAmount] = useState('');
   const [pendingSellAmount, setPendingSellAmount] = useState('');
 
   // Handle transaction success/error
   useEffect(() => {
-    if (isBuySuccess && buyHash && pendingBuyAmount) {
-      setTxState({ status: 'success', message: `Successfully bought ${pendingBuyAmount} tokens!`, hash: buyHash });
-      setBuyAmount('');
-      setPendingBuyAmount('');
+    if (isBuySuccess && buyHash && pendingMaticAmount && estimatedTokens) {
+      const tokensReceived = formatEther(estimatedTokens);
+      setTxState({ status: 'success', message: `Successfully bought ${parseFloat(tokensReceived).toFixed(2)} tokens with ${pendingMaticAmount} MATIC!`, hash: buyHash });
+      setMaticAmount('');
+      setPendingMaticAmount('');
       setTimeout(() => setTxState({ status: 'idle', message: '' }), 5000);
     }
-  }, [isBuySuccess, buyHash, pendingBuyAmount]);
+  }, [isBuySuccess, buyHash, pendingMaticAmount, estimatedTokens]);
 
   useEffect(() => {
     if (isSellSuccess && sellHash && pendingSellAmount) {
@@ -155,7 +158,7 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
   }, [isSellError]);
 
   // Input validation
-  const validateBuyAmount = (value: string) => {
+  const validateMaticAmount = (value: string) => {
     setInputError('');
     if (!value) return;
     const num = parseFloat(value);
@@ -176,21 +179,21 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
   };
 
   const handleBuy = async () => {
-    if (!buyAmount || !buyPrice || inputError) return;
+    if (!maticAmount || !estimatedTokens || inputError) return;
 
     setTxState({ status: 'pending', message: 'Waiting for wallet confirmation...' });
-    setPendingBuyAmount(buyAmount);
+    setPendingMaticAmount(maticAmount);
 
     try {
       await buyTokens({
         address: tokenAddress,
         abi: SOCIAL_TOKEN_ABI,
-        functionName: 'buyTokens',
-        value: buyPrice,
+        functionName: 'buyWithExactMatic',
+        value: parseEther(maticAmount),
       });
       setTxState({ status: 'confirming', message: 'Transaction submitted. Waiting for confirmation...' });
     } catch (error: any) {
-      setPendingBuyAmount('');
+      setPendingMaticAmount('');
       const errorMsg = error?.message?.toLowerCase() || '';
       const message = errorMsg.includes('user rejected') || errorMsg.includes('user denied') || errorMsg.includes('rejected')
         ? 'Transaction cancelled by user'
@@ -240,7 +243,7 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
   };
 
   const userBalanceFormatted = userBalance ? formatEther(userBalance) : '0';
-  const buyPriceFormatted = buyPrice ? formatEther(buyPrice) : '0';
+  const estimatedTokensFormatted = estimatedTokens ? formatEther(estimatedTokens) : '0';
   const sellPriceFormatted = sellPrice ? formatEther(sellPrice) : '0';
 
   if (isTokenError) {
@@ -277,6 +280,11 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
     <div className="space-y-6">
       {/* Trading Interface */}
       <Card className="p-6">
+        {/* MATIC Price Indicator */}
+        <div className="mb-4 pb-4 border-b border-border/50">
+          <MaticPriceIndicator className="text-center" />
+        </div>
+
         <div className="flex items-center gap-4 mb-6">
           <Button
             variant="outline"
@@ -344,26 +352,70 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">
-                Amount to Buy
+                Amount to Spend (MATIC)
               </label>
               <input
                 type="number"
-                value={buyAmount}
+                value={maticAmount}
                 onChange={(e) => {
-                  setBuyAmount(e.target.value);
-                  validateBuyAmount(e.target.value);
+                  setMaticAmount(e.target.value);
+                  validateMaticAmount(e.target.value);
                 }}
-                placeholder="Enter token amount"
+                placeholder="Enter MATIC amount"
                 min="0"
                 step="any"
-                className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all"
               />
+
+              {/* Quick Buy Buttons - MATIC amounts */}
+              <div className="mt-3 flex gap-2 flex-wrap items-center">
+                <span className="text-xs text-foreground/50">Quick buy:</span>
+                {[100, 500, 1000, 5000].map((maticAmt) => (
+                  <button
+                    key={maticAmt}
+                    type="button"
+                    onClick={() => {
+                      setMaticAmount(maticAmt.toString());
+                      validateMaticAmount(maticAmt.toString());
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-all hover:scale-105 active:scale-95"
+                  >
+                    {maticAmt} MATIC
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Show estimated tokens you'll receive */}
+            {maticAmount && estimatedTokens && estimatedTokens > BigInt(0) && (
+              <div className="p-3 bg-surface/50 rounded-lg border border-border/50 transition-all animate-in fade-in duration-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-foreground/60">You spend:</span>
+                  <PriceDisplay
+                    maticAmount={maticAmount}
+                    size="sm"
+                    showBoth={true}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-foreground/60">You'll receive:</span>
+                  <span className="text-sm font-semibold">{parseFloat(estimatedTokensFormatted).toFixed(2)} {symbol}</span>
+                </div>
+                <div className="mt-2 pt-2 border-t border-border/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-foreground/50">Avg price:</span>
+                    <span className="text-xs text-foreground/50">
+                      {(parseFloat(maticAmount) / parseFloat(estimatedTokensFormatted)).toFixed(6)} MATIC/token
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Button
               onClick={handleBuy}
-              disabled={!isConnected || !buyAmount || isBuying || isBuyConfirming || !!inputError}
-              className="w-full bg-green-600 hover:bg-green-700"
+              disabled={!isConnected || !maticAmount || isBuying || isBuyConfirming || !!inputError || !estimatedTokens || estimatedTokens === BigInt(0)}
+              className="w-full bg-green-600 hover:bg-green-700 transition-all"
               size="lg"
             >
               {isBuying || isBuyConfirming ? (
@@ -411,6 +463,24 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
                 Balance: {parseFloat(userBalanceFormatted).toFixed(4)} {symbol}
               </div>
             </div>
+
+            {/* Show proceeds in USD */}
+            {sellAmount && sellPrice && (
+              <div className="p-3 bg-surface/50 rounded-lg border border-border/50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-foreground/60">You sell:</span>
+                  <span className="text-sm font-semibold">{sellAmount} {symbol}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-foreground/60">You get:</span>
+                  <PriceDisplay
+                    maticAmount={sellPriceFormatted}
+                    size="sm"
+                    showBoth={true}
+                  />
+                </div>
+              </div>
+            )}
 
             <Button
               onClick={handleSell}

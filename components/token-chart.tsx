@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SOCIAL_TOKEN_ABI } from '@/lib/contracts';
 import { TrendingUp, TrendingDown, DollarSign, Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { PriceDisplay } from '@/components/ui/price-display';
 
 interface TokenChartProps {
   tokenAddress: Address;
@@ -425,11 +426,23 @@ export function TokenChart({ tokenAddress }: TokenChartProps) {
   const buyPriceFormatted = buyPrice ? formatEther(buyPrice) : '0';
   const sellPriceFormatted = sellPrice ? formatEther(sellPrice) : '0';
 
+  const currentPrice = tokenInfo ? formatEther(tokenInfo[6] as bigint) : '0';
+
   return (
     <Card className="p-4">
       {/* Chart Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">{symbol}/MATIC</h3>
+        <div>
+          <h3 className="text-lg font-semibold">{symbol}/MATIC</h3>
+          {tokenInfo && (
+            <PriceDisplay
+              maticAmount={currentPrice}
+              size="sm"
+              showBoth={true}
+              className="mt-1"
+            />
+          )}
+        </div>
         <div className="flex gap-1">
           {['5M', '15M', '1H', '4H', '1D'].map((tf) => (
             <button
