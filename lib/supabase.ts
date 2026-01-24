@@ -39,3 +39,35 @@ export interface DbUserStats {
   reputation_score: number;
   updated_at: string;
 }
+
+// Referral system types
+export interface DbReferral {
+  id: string;
+  referrer_address: string;
+  referred_address: string;
+  referral_code: string;
+  created_at: string;
+  is_active: boolean;
+}
+
+export interface DbReferralStats {
+  referrer_address: string;
+  total_referrals: number;
+  active_referrals: number;
+  total_volume_generated: string;
+  total_earnings: string;
+  pending_earnings: string;
+  claimed_earnings: string;
+  updated_at: string;
+}
+
+export interface DbReferralEarning {
+  id: string;
+  referrer_address: string;
+  referred_address: string;
+  token_address: string;
+  trade_volume: string;
+  earning_amount: string;
+  created_at: string;
+  is_claimed: boolean;
+}

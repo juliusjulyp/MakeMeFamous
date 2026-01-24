@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTokenFactory } from '@/hooks/use-token-factory';
 import { useProfile } from '@/hooks/use-profile';
+import { ReferralCard } from '@/components/referral-card';
 import { SOCIAL_TOKEN_ABI, SOCIAL_TOKEN_FACTORY_ABI, getFactoryAddress } from '@/lib/contracts';
 import {
   Wallet,
@@ -20,13 +21,14 @@ import {
   Check,
   Edit3,
   X,
-  Save
+  Save,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatEther, Address } from 'viem';
 import { useChainId } from 'wagmi';
 
-type TabType = 'portfolio' | 'created' | 'activity';
+type TabType = 'portfolio' | 'created' | 'referrals' | 'activity';
 
 export default function ProfilePage() {
   const { address, isConnected } = useAccount();
@@ -275,6 +277,14 @@ export default function ProfilePage() {
             )}
           </Button>
           <Button
+            variant={activeTab === 'referrals' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('referrals')}
+            className="flex items-center gap-2"
+          >
+            <Users className="h-4 w-4" />
+            Referrals
+          </Button>
+          <Button
             variant={activeTab === 'activity' ? 'primary' : 'outline'}
             onClick={() => setActiveTab('activity')}
             className="flex items-center gap-2"
@@ -291,6 +301,10 @@ export default function ProfilePage() {
 
         {activeTab === 'created' && (
           <CreatedTab createdTokens={createdTokens as string[] | undefined} />
+        )}
+
+        {activeTab === 'referrals' && (
+          <ReferralCard />
         )}
 
         {activeTab === 'activity' && (

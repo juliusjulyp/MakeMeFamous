@@ -16,6 +16,7 @@ import { PriceDisplay, MaticPriceIndicator } from '@/components/ui/price-display
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { SOCIAL_TOKEN_ABI } from '@/lib/contracts';
+import { ShareButton } from '@/components/share-button';
 
 interface TokenMetadata {
   token_address: string;
@@ -220,6 +221,14 @@ export default function TokenPage() {
                       />
                     </div>
                   )}
+
+                  {/* Share Button */}
+                  <ShareButton
+                    tokenAddress={tokenAddress}
+                    tokenName={tokenInfo[0] as string}
+                    tokenSymbol={tokenInfo[1] as string}
+                    price={formatEther(tokenInfo[6] as bigint)}
+                  />
                 </div>
               </div>
             </Card>

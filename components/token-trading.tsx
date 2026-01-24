@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { SOCIAL_TOKEN_ABI } from '@/lib/contracts';
 import { PriceDisplay, MaticPriceIndicator } from '@/components/ui/price-display';
 import { TrendingUp, TrendingDown, DollarSign, Users, ArrowUpDown, Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { trackReferralEarnings } from '@/hooks/use-referral';
+import { useNotifications } from '@/components/notifications';
 
 // Format price with max 6 decimals
 const formatPrice = (value: string | number): string => {
@@ -41,6 +43,7 @@ interface TokenTradingProps {
 
 export function TokenTrading({ tokenAddress }: TokenTradingProps) {
   const { address, isConnected } = useAccount();
+  const { addNotification } = useNotifications();
   const [maticAmount, setMaticAmount] = useState(''); // Changed: Now user enters MATIC amount
   const [sellAmount, setSellAmount] = useState('');
   const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy');
@@ -123,25 +126,76 @@ export function TokenTrading({ tokenAddress }: TokenTradingProps) {
   const [pendingMaticAmount, setPendingMaticAmount] = useState('');
   const [pendingSellAmount, setPendingSellAmount] = useState('');
 
+  // Helper to record trade in database
+  const recordTrade = async (type: 'buy' | 'sell', tokenAmount: string, maticAmount: string, txHash: string) => {
+    try {
+      await fetch('/api/trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tokenAddress,
+          traderAddress: address,
+          type,
+          tokenAmount,
+          maticAmount,
+          txHash
+        })
+      });
+    } catch (error) {
+      console.error('Failed to record trade:', error);
+    }
+  };
+
   // Handle transaction success/error
   useEffect(() => {
     if (isBuySuccess && buyHash && pendingMaticAmount && estimatedTokens) {
       const tokensReceived = formatEther(estimatedTokens);
       setTxState({ status: 'success', message: `Successfully bought ${parseFloat(tokensReceived).toFixed(2)} tokens with ${pendingMaticAmount} MATIC!`, hash: buyHash });
+
+      // Track referral earnings and record trade
+      if (address) {
+        trackReferralEarnings(address, tokenAddress, pendingMaticAmount, buyHash);
+        recordTrade('buy', tokensReceived, pendingMaticAmount, buyHash);
+      }
+
+      // Send notification
+      addNotification({
+        type: 'trade',
+        title: 'Trade Successful',
+        message: `Bought ${parseFloat(tokensReceived).toFixed(2)} tokens for ${pendingMaticAmount} MATIC`,
+        link: `/token/${tokenAddress}`
+      });
+
       setMaticAmount('');
       setPendingMaticAmount('');
       setTimeout(() => setTxState({ status: 'idle', message: '' }), 5000);
     }
-  }, [isBuySuccess, buyHash, pendingMaticAmount, estimatedTokens]);
+  }, [isBuySuccess, buyHash, pendingMaticAmount, estimatedTokens, address, tokenAddress, addNotification]);
 
   useEffect(() => {
-    if (isSellSuccess && sellHash && pendingSellAmount) {
+    if (isSellSuccess && sellHash && pendingSellAmount && sellPrice) {
+      const maticReceived = formatEther(sellPrice);
       setTxState({ status: 'success', message: `Successfully sold ${pendingSellAmount} tokens!`, hash: sellHash });
+
+      // Track referral earnings and record trade
+      if (address) {
+        trackReferralEarnings(address, tokenAddress, maticReceived, sellHash);
+        recordTrade('sell', pendingSellAmount, maticReceived, sellHash);
+      }
+
+      // Send notification
+      addNotification({
+        type: 'trade',
+        title: 'Trade Successful',
+        message: `Sold ${pendingSellAmount} tokens for ${parseFloat(maticReceived).toFixed(4)} MATIC`,
+        link: `/token/${tokenAddress}`
+      });
+
       setSellAmount('');
       setPendingSellAmount('');
       setTimeout(() => setTxState({ status: 'idle', message: '' }), 5000);
     }
-  }, [isSellSuccess, sellHash, pendingSellAmount]);
+  }, [isSellSuccess, sellHash, pendingSellAmount, sellPrice, address, tokenAddress, addNotification]);
 
   useEffect(() => {
     if (isBuyError) {

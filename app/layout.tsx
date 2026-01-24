@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/navigation";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Providers } from "@/components/providers";
+import { ReferralHandler } from "@/components/referral-handler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +33,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
+          <Suspense fallback={null}>
+            <ReferralHandler />
+          </Suspense>
           <Navigation />
           <ErrorBoundary>
             <div className="flex min-h-screen">

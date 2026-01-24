@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useAccount } from "wagmi";
-import { BookOpen, Sparkles, Menu, X, Coins, User } from "lucide-react";
+import { BookOpen, Sparkles, Menu, X, Coins, User, LayoutDashboard } from "lucide-react";
+import { NotificationBell } from "@/components/notifications";
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,13 +40,22 @@ export function Navigation() {
             Fame
           </Link>
           {isConnected && (
-            <Link
-              href="/profile"
-              className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
-            >
-              <User className="h-4 w-4" />
-              Profile
-            </Link>
+            <>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Link>
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+              >
+                <User className="h-4 w-4" />
+                Profile
+              </Link>
+            </>
           )}
         </div>
 
@@ -62,6 +72,7 @@ export function Navigation() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
+          {isConnected && <NotificationBell />}
           <WalletConnect />
           <Link href="/create">
             <Button className="gap-2">
@@ -93,14 +104,24 @@ export function Navigation() {
               Fame
             </Link>
             {isConnected && (
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                <User className="h-4 w-4" />
-                Profile
-              </Link>
+              <>
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </Link>
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <User className="h-4 w-4" />
+                  Profile
+                </Link>
+              </>
             )}
             <Link href="/create" onClick={() => setIsOpen(false)}>
               <Button className="w-full gap-2">
