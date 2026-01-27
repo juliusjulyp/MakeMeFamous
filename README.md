@@ -178,9 +178,6 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## Contributing
-
-Solo project for now, contributions welcome after launch!
 
 ## License
 
