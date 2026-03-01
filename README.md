@@ -54,14 +54,27 @@ We chose **Polygon** as our foundation for the best user experience in social cr
 - **Top Holders View** - See who's in your community
 - **Revenue Analytics** - Historical performance and growth metrics
 
-### Referral System
+### Referral System (Periodically)
 - **0.5% Forever** - Earn from referred users' trading fees permanently
 - **Unique Links** - Auto-generated from wallet address
-- **Leaderboards** - Compete for top referrer status at `/fame`
+- **Leaderboards** - Compete for top referrer status at `/leaderboard`
 - **Social Sharing** - One-click share to Twitter, Telegram
 
+### Discovery & Engagement
+- **Token Categories** - Creator, Artist, Gaming, Meme, Music, Infrastructure, AI
+- **Advanced Search** - Filter by volume, holders, age, price
+- **Watchlists** - Save tokens to personal list
+- **Creator Follows** - See new tokens from followed creators
+- **Price Alerts** - Notifications for specific price targets
+- **Recommendations** - "Users who bought X also bought Y"
+
+### Social Feed
+- **Fame Feed** - Twitter-like social feed at `/fame` with Global/Following tabs
+- **Posts** - Text, images (up to 4), token tags, link previews
+- **Interactions** - Likes, comments, reposts with optimistic updates
+
 ### Platform Features
-- **Hall of Fame** - Leaderboards for tokens, creators, and referrers
+- **Leaderboard** - Rankings for tokens, creators, and referrers at `/leaderboard`
 - **Notifications** - Toast alerts and notification bell for events
 - **Dynamic OG Images** - Auto-generated social cards for sharing
 - **Mobile Responsive** - Full functionality on all devices
@@ -139,7 +152,7 @@ Graduation Criteria:
 ### Polygon Amoy Testnet
 | Contract | Address |
 |----------|---------|
-| SocialTokenFactory | [`0x8216A11dadb24582B429447601a4dd336AEFcC97`](https://amoy.polygonscan.com/address/0x8216A11dadb24582B429447601a4dd336AEFcC97) |
+| SocialTokenFactory (V2) | [`0x267430ec1a61C7Aa7e3B2EEE7d4142208D31c9B9`](https://amoy.polygonscan.com/address/0x267430ec1a61C7Aa7e3B2EEE7d4142208D31c9B9) |
 
 ### Polygon Mainnet
 Not yet deployed - coming soon after testnet validation.

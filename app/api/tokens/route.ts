@@ -22,11 +22,19 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ token });
   } else {
-    // Get all tokens
-    const { data: tokens, error } = await supabase
+    // Get all tokens with optional category filter
+    const category = searchParams.get('category');
+
+    let query = supabase
       .from('token_metadata')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (category) {
+      query = query.eq('category', category);
+    }
+
+    const { data: tokens, error } = await query;
 
     if (error) {
       return NextResponse.json({ error: 'Failed to fetch tokens' }, { status: 500 });
@@ -46,6 +54,7 @@ export async function POST(request: NextRequest) {
       symbol,
       description,
       image_url,
+      category,
       website,
       twitter,
       telegram
@@ -66,6 +75,7 @@ export async function POST(request: NextRequest) {
         symbol,
         description: description || null,
         image_url,
+        category: category || 'meme',
         website: website || null,
         twitter: twitter || null,
         telegram: telegram || null,

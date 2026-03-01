@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useAccount } from "wagmi";
-import { BookOpen, Sparkles, Menu, X, Coins, User, LayoutDashboard } from "lucide-react";
+import { MessageSquare, Sparkles, Menu, X, Coins, User, LayoutDashboard } from "lucide-react";
 import { NotificationBell } from "@/components/notifications";
 
 export function Navigation() {
@@ -36,7 +36,7 @@ export function Navigation() {
             href="/fame"
             className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
           >
-            <BookOpen className="h-4 w-4" />
+            <MessageSquare className="h-4 w-4" />
             Fame
           </Link>
           {isConnected && (
@@ -100,7 +100,7 @@ export function Navigation() {
               className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
               onClick={() => setIsOpen(false)}
             >
-              <BookOpen className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4" />
               Fame
             </Link>
             {isConnected && (

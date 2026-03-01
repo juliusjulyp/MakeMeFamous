@@ -38,6 +38,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to record trade' }, { status: 500 });
     }
 
+    // Check and trigger price alerts for this token
+    try {
+      const tradePrice = parseFloat(maticAmount) / parseFloat(tokenAmount || '1');
+      if (tradePrice > 0) {
+        const { data: activeAlerts } = await supabase
+          .from('price_alerts')
+          .select('id, target_price, direction')
+          .eq('token_address', tokenAddress.toLowerCase())
+          .eq('is_active', true);
+
+        if (activeAlerts && activeAlerts.length > 0) {
+          const triggeredIds: string[] = [];
+          for (const alert of activeAlerts) {
+            const target = parseFloat(alert.target_price);
+            if (
+              (alert.direction === 'above' && tradePrice >= target) ||
+              (alert.direction === 'below' && tradePrice <= target)
+            ) {
+              triggeredIds.push(alert.id);
+            }
+          }
+          if (triggeredIds.length > 0) {
+            await supabase
+              .from('price_alerts')
+              .update({ is_active: false, triggered_at: new Date().toISOString() })
+              .in('id', triggeredIds);
+          }
+        }
+      }
+    } catch (alertError) {
+      // Don't fail the trade if alert check fails
+      console.error('Alert check error:', alertError);
+    }
+
     return NextResponse.json({ trade });
   } catch (error) {
     console.error('Trade error:', error);

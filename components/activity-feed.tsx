@@ -1,223 +1,258 @@
-"use client";
+'use client';
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  MessageCircle, 
-  Heart, 
-  Share, 
-  AlertTriangle,
+import { useState, useEffect, useCallback } from 'react';
+import { useAccount } from 'wagmi';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useFollows } from '@/hooks/use-follows';
+import {
+  TrendingUp,
+  TrendingDown,
+  Sparkles,
   Zap,
-  Crown,
-  Eye
-} from "lucide-react";
-import { formatCompactNumber, formatPercentage } from "@/lib/utils";
+  Loader2,
+} from 'lucide-react';
+import Link from 'next/link';
 
 interface ActivityItem {
   id: string;
-  type: "trade" | "launch" | "milestone" | "warning" | "event" | "content";
-  user: {
-    name: string;
-    avatar: string;
-    reputation: number;
-  };
-  content: string;
-  token?: {
-    symbol: string;
-    logo: string;
-    change: number;
-  };
-  metrics: {
-    likes: number;
-    comments: number;
-    shares: number;
-    views?: number;
-  };
-  timestamp: string;
-  isLive?: boolean;
+  type: 'buy' | 'sell' | 'create';
+  tokenAddress: string;
+  tokenName: string;
+  tokenSymbol: string;
+  tokenImage: string | null;
+  traderAddress: string;
+  traderName: string | null;
+  traderAvatar: string | null;
+  volume: string;
+  tokenAmount: string;
+  txHash: string | null;
+  createdAt: string;
 }
 
-const MOCK_ACTIVITY: ActivityItem[] = [
-  {
-    id: "1",
-    type: "trade",
-    user: { name: "@whalewatcher", avatar: "🐋", reputation: 5 },
-    content: "Just bought 50K $PEPE2! This community is unreal 🔥",
-    token: { symbol: "$PEPE2", logo: "🐸", change: 12.5 },
-    metrics: { likes: 42, comments: 8, shares: 3 },
-    timestamp: "2m ago",
-    isLive: true
-  },
-  {
-    id: "2", 
-    type: "warning",
-    user: { name: "@rugdetector", avatar: "🕵️", reputation: 4 },
-    content: "🚨 RED FLAG: $SCAM dev just moved 20% of liquidity. Community research confirms our suspicions.",
-    token: { symbol: "$SCAM", logo: "💰", change: -45.2 },
-    metrics: { likes: 156, comments: 34, shares: 89 },
-    timestamp: "15m ago"
-  },
-  {
-    id: "3",
-    type: "milestone",
-    user: { name: "@moondev", avatar: "🚀", reputation: 3 },
-    content: "🎉 $MOON just hit 5000 holders! Thank you community for believing in our vision. Next stop: 10K!",
-    token: { symbol: "$MOON", logo: "🌙", change: 23.8 },
-    metrics: { likes: 234, comments: 67, shares: 45 },
-    timestamp: "1h ago"
-  },
-  {
-    id: "4",
-    type: "event",
-    user: { name: "@cryptoqueen", avatar: "👑", reputation: 5 },
-    content: "Live now: Community Token Showcase! Join us for the biggest reveals and discussions 🎊",
-    metrics: { likes: 89, comments: 23, shares: 12, views: 1247 },
-    timestamp: "2h ago",
-    isLive: true
-  },
-  {
-    id: "5",
-    type: "content",
-    user: { name: "@memegod", avatar: "😂", reputation: 2 },
-    content: "Created the ultimate 'How to spot a rug pull' guide. 15 red flags every degen should know! 📚",
-    metrics: { likes: 445, comments: 78, shares: 234 },
-    timestamp: "4h ago"
-  }
+type FilterType = 'all' | 'buys' | 'sells' | 'creates' | 'following';
+
+const FILTER_TABS: { value: FilterType; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'buys', label: 'Buys' },
+  { value: 'sells', label: 'Sells' },
+  { value: 'creates', label: 'New' },
+  { value: 'following', label: 'Following' },
 ];
 
-const getActivityIcon = (type: ActivityItem["type"], isLive?: boolean) => {
-  if (isLive) return <Zap className="h-4 w-4 text-red-500 animate-pulse" />;
-  
-  switch (type) {
-    case "trade": return <TrendingUp className="h-4 w-4 text-green-500" />;
-    case "launch": return <Crown className="h-4 w-4 text-yellow-500" />;
-    case "milestone": return <Users className="h-4 w-4 text-blue-500" />;
-    case "warning": return <AlertTriangle className="h-4 w-4 text-red-500" />;
-    case "event": return <Eye className="h-4 w-4 text-purple-500" />;
-    case "content": return <MessageCircle className="h-4 w-4 text-green-500" />;
-  }
-};
+function timeAgo(dateStr: string): string {
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 
-const getActivityBg = (type: ActivityItem["type"]) => {
-  switch (type) {
-    case "warning": return "bg-red-500/10 border-red-500/20";
-    case "milestone": return "bg-blue-500/10 border-blue-500/20";
-    case "event": return "bg-purple-500/10 border-purple-500/20";
-    default: return "";
-  }
-};
+function shortenAddress(addr: string): string {
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+function formatAmount(amount: string): string {
+  const num = parseFloat(amount);
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  if (num >= 1) return num.toFixed(2);
+  return num.toFixed(4);
+}
 
 export function ActivityFeed() {
+  const { address, isConnected } = useAccount();
+  const { following } = useFollows();
+  const [items, setItems] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [filter, setFilter] = useState<FilterType>('all');
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+
+  const fetchActivity = useCallback(
+    async (loadMore = false) => {
+      if (loadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      try {
+        const params = new URLSearchParams();
+        const apiType = filter === 'following' ? 'all' : filter;
+        params.set('type', apiType);
+        params.set('limit', '20');
+
+        if (filter === 'following' && following.length > 0) {
+          params.set('following', following.join(','));
+        }
+
+        if (loadMore && cursor) {
+          params.set('before', cursor);
+        }
+
+        const response = await fetch(`/api/activity?${params.toString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (loadMore) {
+            setItems(prev => [...prev, ...data.items]);
+          } else {
+            setItems(data.items);
+          }
+          setCursor(data.nextCursor);
+          setHasMore(data.items.length >= 20);
+        }
+      } catch (error) {
+        console.error('Error fetching activity:', error);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [filter, following, cursor]
+  );
+
+  // Fetch on mount and filter change
+  useEffect(() => {
+    setCursor(null);
+    setHasMore(true);
+    fetchActivity(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, following.length]);
+
   return (
-    <div className="w-96 border-l border-border bg-surface/30 backdrop-blur-sm">
+    <div className="w-full max-w-md border-l border-border bg-surface/30 backdrop-blur-sm flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">Live Activity</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold">Activity</h2>
           <Badge variant="primary" className="gap-1">
             <Zap className="h-3 w-3" />
             Live
           </Badge>
         </div>
-        <p className="text-sm text-foreground/60 mt-1">
-          Real-time community updates
-        </p>
+
+        {/* Filter Tabs */}
+        <div className="flex gap-1">
+          {FILTER_TABS.map((tab) => {
+            // Hide "Following" tab if not connected or no follows
+            if (tab.value === 'following' && (!isConnected || following.length === 0)) {
+              return null;
+            }
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setFilter(tab.value)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                  filter === tab.value
+                    ? 'bg-primary text-white'
+                    : 'bg-surface hover:bg-surface/80 text-foreground/60'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Activity Stream */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-4">
-          {MOCK_ACTIVITY.map((item) => (
-            <Card 
-              key={item.id} 
-              className={`transition-all hover:bg-surface/50 ${getActivityBg(item.type)}`}
-            >
-              <CardContent className="p-4">
-                {/* Header */}
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{item.user.avatar}</span>
-                    <div className="flex items-center gap-1">
-                      {getActivityIcon(item.type, item.isLive)}
-                      {item.isLive && (
-                        <Badge variant="primary" className="text-xs px-1 py-0">
-                          Live
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{item.user.name}</span>
-                      <span className="text-yellow-500 text-xs">
-                        {"⭐".repeat(item.user.reputation)}
-                      </span>
-                    </div>
-                    <span className="text-xs text-foreground/50">{item.timestamp}</span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <p className="text-sm mb-3 leading-relaxed">{item.content}</p>
-
-                {/* Token Info */}
-                {item.token && (
-                  <div className="flex items-center gap-3 mb-3 p-2 bg-surface/50 rounded-lg">
-                    <span className="text-lg">{item.token.logo}</span>
-                    <div className="flex-1">
-                      <span className="text-sm font-medium">{item.token.symbol}</span>
-                    </div>
-                    <div className={`flex items-center gap-1 text-sm font-medium ${
-                      item.token.change >= 0 ? "text-green-500" : "text-red-500"
-                    }`}>
-                      {item.token.change >= 0 ? (
-                        <TrendingUp className="h-3 w-3" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3" />
-                      )}
-                      {formatPercentage(item.token.change)}
-                    </div>
-                  </div>
-                )}
-
-                {/* Metrics */}
-                <div className="flex items-center justify-between text-xs text-foreground/60">
-                  <div className="flex items-center gap-4">
-                    <button className="flex items-center gap-1 hover:text-red-500 transition-colors">
-                      <Heart className="h-3 w-3" />
-                      {formatCompactNumber(item.metrics.likes)}
-                    </button>
-                    <button className="flex items-center gap-1 hover:text-blue-500 transition-colors">
-                      <MessageCircle className="h-3 w-3" />
-                      {item.metrics.comments}
-                    </button>
-                    <button className="flex items-center gap-1 hover:text-green-500 transition-colors">
-                      <Share className="h-3 w-3" />
-                      {item.metrics.shares}
-                    </button>
-                    {item.metrics.views && (
-                      <div className="flex items-center gap-1">
-                        <Eye className="h-3 w-3" />
-                        {formatCompactNumber(item.metrics.views)}
+        {loading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-6 w-6 animate-spin text-foreground/40" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="p-8 text-center text-foreground/50 text-sm">
+            {filter === 'following'
+              ? 'No activity from creators you follow yet'
+              : 'No activity yet. Be the first to trade!'}
+          </div>
+        ) : (
+          <div className="p-3 space-y-2">
+            {items.map((item) => (
+              <Link key={item.id} href={`/token/${item.tokenAddress}`}>
+                <Card className="hover:bg-surface/50 transition-colors cursor-pointer">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      {/* Token Image */}
+                      <div className="flex-shrink-0">
+                        {item.tokenImage ? (
+                          <img
+                            src={item.tokenImage}
+                            alt={item.tokenName}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">
+                              {item.tokenSymbol.charAt(0)}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 text-sm">
+                          {item.type === 'buy' && (
+                            <TrendingUp className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                          )}
+                          {item.type === 'sell' && (
+                            <TrendingDown className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+                          )}
+                          {item.type === 'create' && (
+                            <Sparkles className="h-3.5 w-3.5 text-yellow-500 flex-shrink-0" />
+                          )}
+                          <span className="font-medium truncate">
+                            {item.traderName || shortenAddress(item.traderAddress)}
+                          </span>
+                          <span className="text-foreground/50">
+                            {item.type === 'create' ? 'created' : item.type === 'buy' ? 'bought' : 'sold'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-foreground/60 mt-0.5">
+                          <span className="font-medium text-foreground/80">${item.tokenSymbol}</span>
+                          {item.type !== 'create' && (
+                            <>
+                              <span>·</span>
+                              <span>{formatAmount(item.volume)} MATIC</span>
+                            </>
+                          )}
+                          <span>·</span>
+                          <span>{timeAgo(item.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {/* Load More */}
-        <div className="p-4 border-t border-border">
-          <Button variant="ghost" className="w-full" size="sm">
-            Load more activity
-          </Button>
-        </div>
+        {hasMore && items.length > 0 && (
+          <div className="p-3 border-t border-border">
+            <Button
+              variant="ghost"
+              className="w-full"
+              size="sm"
+              onClick={() => fetchActivity(true)}
+              disabled={loadingMore}
+            >
+              {loadingMore ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Load more
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

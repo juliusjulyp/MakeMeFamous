@@ -9,7 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useTokenFactory } from '@/hooks/use-token-factory';
 import { CONTRACT_CONFIG } from '@/lib/contracts';
-import { Loader2, Rocket, DollarSign, Users, TrendingUp, Upload, X } from 'lucide-react';
+import { Loader2, Rocket, DollarSign, Users, TrendingUp, Upload, X, Crown, Palette, Gamepad2, Smile, Music, Building2, Bot } from 'lucide-react';
+import { TOKEN_CATEGORIES, TokenCategory } from '@/lib/supabase';
+
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  Crown, Palette, Gamepad2, Smile, Music, Building2, Bot,
+};
 
 interface TokenFormData {
   name: string;
@@ -18,6 +23,7 @@ interface TokenFormData {
   description: string;
   imageUrl: string;
   imageFile: File | null;
+  category: TokenCategory;
 }
 
 export function TokenCreator() {
@@ -39,6 +45,7 @@ export function TokenCreator() {
     description: '',
     imageUrl: '',
     imageFile: null,
+    category: 'meme',
   });
 
   const [showForm, setShowForm] = useState(false);
@@ -49,6 +56,7 @@ export function TokenCreator() {
     symbol: string;
     description: string;
     imageUrl: string;
+    category: TokenCategory;
   } | null>(null);
 
   // Save metadata and redirect when token is successfully created
@@ -78,6 +86,7 @@ export function TokenCreator() {
               symbol: pendingMetadata.symbol,
               description: pendingMetadata.description,
               image_url: pendingMetadata.imageUrl,
+              category: pendingMetadata.category,
             }),
           });
 
@@ -102,6 +111,7 @@ export function TokenCreator() {
           description: '',
           imageUrl: '',
           imageFile: null,
+          category: 'meme',
         });
         setUploadedImageUrl('');
         setPendingMetadata(null);
@@ -166,6 +176,7 @@ export function TokenCreator() {
         symbol: formData.symbol,
         description: formData.description,
         imageUrl: imageUrlToUse,
+        category: formData.category,
       });
 
       // Metadata will be saved in the useEffect when createdTokenAddress is set
@@ -371,6 +382,31 @@ export function TokenCreator() {
             />
             <div className="text-xs text-foreground/50 mt-1">
               {formData.description.length}/500 characters
+            </div>
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Category</label>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {TOKEN_CATEGORIES.map((cat) => {
+                const Icon = CATEGORY_ICONS[cat.icon];
+                return (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, category: cat.value }))}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
+                      formData.category === cat.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:border-primary/50 text-foreground/60'
+                    }`}
+                  >
+                    {Icon && <Icon className="h-5 w-5" />}
+                    <span className="text-xs font-medium">{cat.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

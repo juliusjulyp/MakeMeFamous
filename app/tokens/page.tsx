@@ -1,63 +1,94 @@
 // app/tokens/page.tsx
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useAccount, useReadContract } from 'wagmi';
+import { Suspense, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useTokenFactory } from '@/hooks/use-token-factory';
-import { SOCIAL_TOKEN_ABI } from '@/lib/contracts';
-import { CompactPrice } from '@/components/ui/price-display';
-import { TrendingUp, Users, DollarSign, Search, X, Heart, Share2, ExternalLink, Copy, Check } from 'lucide-react';
+import { useTokenDiscovery, SortOption } from '@/hooks/use-token-discovery';
+import { TokenCard } from '@/components/token-card';
+import { TOKEN_CATEGORIES, TokenCategory } from '@/lib/supabase';
+import {
+  TrendingUp,
+  Users,
+  DollarSign,
+  Search,
+  X,
+  SlidersHorizontal,
+  Crown,
+  Palette,
+  Gamepad2,
+  Smile,
+  Music,
+  Building2,
+  Bot,
+  Trophy,
+  Bookmark,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+} from 'lucide-react';
 import Link from 'next/link';
-import { formatEther, Address } from 'viem';
+import { formatEther } from 'viem';
 
-interface TokenData {
-  address: string;
-  name: string;
-  symbol: string;
-  totalSupply: bigint;
-  totalMembers: bigint;
-  creator: string;
-  isVerified: boolean;
-  currentPrice: bigint;
-}
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  creator: Crown,
+  artist: Palette,
+  gaming: Gamepad2,
+  meme: Smile,
+  music: Music,
+  infrastructure: Building2,
+  ai: Bot,
+};
 
-export default function TokensPage() {
-  const { isConnected } = useAccount();
-  const { platformStats, trendingTokens, isCreating } = useTokenFactory();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [tokenDataMap, setTokenDataMap] = useState<Record<string, TokenData>>({});
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'trending', label: 'Trending' },
+  { value: 'volume24h', label: '24h Volume' },
+  { value: 'volume', label: 'Total Volume' },
+  { value: 'holders', label: 'Most Holders' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'likes', label: 'Most Liked' },
+];
 
-  // Callback for TokenCard to report loaded data
-  const handleTokenLoaded = useCallback((data: TokenData) => {
-    setTokenDataMap(prev => ({ ...prev, [data.address]: data }));
-  }, []);
+function TokensContent() {
+  const { platformStats } = useTokenFactory();
+  const {
+    tokens,
+    loading,
+    totalCount,
+    totalPages,
+    page,
+    category,
+    search,
+    sort,
+    filters,
+    setCategory,
+    setSearch,
+    setSort,
+    setFilters,
+    setPage,
+  } = useTokenDiscovery();
 
-  // Filter tokens based on search query
-  const filteredTokens = useMemo(() => {
-    if (!searchQuery.trim()) return trendingTokens;
-
-    const query = searchQuery.toLowerCase();
-    return trendingTokens.filter(address => {
-      const data = tokenDataMap[address];
-      if (!data) return true; // Show while loading
-      return data.name.toLowerCase().includes(query) ||
-             data.symbol.toLowerCase().includes(query);
-    });
-  }, [trendingTokens, searchQuery, tokenDataMap]);
+  const [showFilters, setShowFilters] = useState(false);
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="w-full">
-        
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Discover Tokens</h1>
-          <p className="text-xl text-foreground/70">
-            Find and join vibrant token communities
-          </p>
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Discover Tokens</h1>
+            <p className="text-xl text-foreground/70">
+              Find and join vibrant token communities
+            </p>
+          </div>
+          <Link
+            href="/leaderboard"
+            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-xl text-sm font-medium text-foreground/70 hover:text-foreground hover:border-primary/50 transition-all"
+          >
+            <Trophy className="h-4 w-4 text-yellow-500" />
+            Leaderboard
+          </Link>
         </div>
 
         {/* Platform Stats */}
@@ -74,7 +105,6 @@ export default function TokensPage() {
                 </div>
               </div>
             </Card>
-
             <Card className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500/10 rounded-lg">
@@ -88,7 +118,6 @@ export default function TokensPage() {
                 </div>
               </div>
             </Card>
-
             <Card className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/10 rounded-lg">
@@ -103,419 +132,290 @@ export default function TokensPage() {
           </div>
         )}
 
-        {/* Search Bar */}
-        <Card className="p-4 mb-6">
-          <div className="flex items-center gap-3">
-            <Search className="h-5 w-5 text-foreground/50" />
-            <input
-              type="text"
-              placeholder="Search tokens by name or symbol..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent border-none outline-none text-lg"
-            />
-            {searchQuery && (
+        {/* Category Tabs */}
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+          <button
+            onClick={() => setCategory(null)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+              !category
+                ? 'bg-primary text-white'
+                : 'bg-surface border border-border hover:border-primary/50 text-foreground/70'
+            }`}
+          >
+            <Sparkles className="h-4 w-4" />
+            All
+          </button>
+          {TOKEN_CATEGORIES.map((cat) => {
+            const Icon = CATEGORY_ICONS[cat.value];
+            return (
               <button
-                onClick={() => setSearchQuery('')}
-                className="p-1 hover:bg-surface rounded"
+                key={cat.value}
+                onClick={() => setCategory(cat.value)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  category === cat.value
+                    ? 'bg-primary text-white'
+                    : 'bg-surface border border-border hover:border-primary/50 text-foreground/70'
+                }`}
               >
-                <X className="h-4 w-4 text-foreground/50" />
+                {Icon && <Icon className="h-4 w-4" />}
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search + Sort + Filter Row */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          {/* Search */}
+          <Card className="flex-1 p-3">
+            <div className="flex items-center gap-3">
+              <Search className="h-5 w-5 text-foreground/50 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Search by name or symbol..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex-1 bg-transparent border-none outline-none text-sm"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="p-1 hover:bg-surface rounded">
+                  <X className="h-4 w-4 text-foreground/50" />
+                </button>
+              )}
+            </div>
+          </Card>
+
+          {/* Sort Dropdown */}
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortOption)}
+            className="px-4 py-3 bg-surface border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Filter Toggle */}
+          <Button
+            variant={showFilters ? 'primary' : 'outline'}
+            onClick={() => setShowFilters(!showFilters)}
+            className="gap-2"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+            {(filters.minVolume > 0 || filters.minHolders > 0 || filters.maxAge > 0) && (
+              <span className="w-2 h-2 rounded-full bg-primary" />
+            )}
+          </Button>
+        </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <Card className="p-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-foreground/60 mb-1.5">
+                  Min Volume (MATIC)
+                </label>
+                <input
+                  type="number"
+                  value={filters.minVolume || ''}
+                  onChange={(e) =>
+                    setFilters({ ...filters, minVolume: parseFloat(e.target.value) || 0 })
+                  }
+                  placeholder="0"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-foreground/60 mb-1.5">
+                  Min Holders
+                </label>
+                <input
+                  type="number"
+                  value={filters.minHolders || ''}
+                  onChange={(e) =>
+                    setFilters({ ...filters, minHolders: parseInt(e.target.value) || 0 })
+                  }
+                  placeholder="0"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-foreground/60 mb-1.5">
+                  Max Age (days)
+                </label>
+                <input
+                  type="number"
+                  value={filters.maxAge || ''}
+                  onChange={(e) =>
+                    setFilters({ ...filters, maxAge: parseInt(e.target.value) || 0 })
+                  }
+                  placeholder="No limit"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+            </div>
+            {(filters.minVolume > 0 || filters.minHolders > 0 || filters.maxAge > 0) && (
+              <button
+                onClick={() => setFilters({ minVolume: 0, minHolders: 0, maxAge: 0 })}
+                className="mt-3 text-xs text-primary hover:underline"
+              >
+                Clear all filters
               </button>
             )}
-          </div>
-          {searchQuery && (
-            <div className="mt-2 text-sm text-foreground/60">
-              {filteredTokens.length} token{filteredTokens.length !== 1 ? 's' : ''} found
-            </div>
-          )}
-        </Card>
+          </Card>
+        )}
 
-        {/* Trending Tokens Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-6">
-            <TrendingUp className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold">Trending Tokens</h2>
+        {/* Results Info */}
+        {!loading && totalCount > 0 && (
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-foreground/60">
+              Showing {(page - 1) * 20 + 1}-{Math.min(page * 20, totalCount)} of {totalCount} tokens
+            </p>
           </div>
-          
-          {trendingTokens.length === 0 ? (
-            <Card className="p-12 text-center">
-              <TrendingUp className="h-16 w-16 mx-auto mb-4 text-foreground/30" />
-              <h3 className="text-xl font-semibold mb-2">No tokens created yet</h3>
-              <p className="text-foreground/60 mb-6">
-                Be the first to create a token and start building your community!
-              </p>
-              <Link href="/create">
-                <Button size="lg">
-                  Create First Token
+        )}
+
+        {/* Token Grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Card key={i} className="overflow-hidden">
+                <div className="animate-pulse">
+                  <div className="aspect-[4/3] bg-surface" />
+                  <div className="p-4 space-y-3">
+                    <div className="h-5 bg-surface rounded w-3/4" />
+                    <div className="h-4 bg-surface rounded w-1/2" />
+                    <div className="h-8 bg-surface rounded" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="h-12 bg-surface rounded" />
+                      <div className="h-12 bg-surface rounded" />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : tokens.length === 0 ? (
+          <Card className="p-12 text-center">
+            <Search className="h-16 w-16 mx-auto mb-4 text-foreground/30" />
+            <h3 className="text-xl font-semibold mb-2">No tokens found</h3>
+            <p className="text-foreground/60 mb-6">
+              {search
+                ? 'Try a different search term or adjust filters'
+                : category
+                ? `No ${category} tokens yet. Be the first to create one!`
+                : 'Be the first to create a token and start building your community!'}
+            </p>
+            <div className="flex gap-3 justify-center">
+              {(search || category || filters.minVolume > 0 || filters.minHolders > 0 || filters.maxAge > 0) && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearch('');
+                    setCategory(null);
+                    setFilters({ minVolume: 0, minHolders: 0, maxAge: 0 });
+                  }}
+                >
+                  Clear Filters
                 </Button>
+              )}
+              <Link href="/create">
+                <Button>Create Token</Button>
               </Link>
-            </Card>
-          ) : filteredTokens.length === 0 ? (
-            <Card className="p-12 text-center">
-              <Search className="h-16 w-16 mx-auto mb-4 text-foreground/30" />
-              <h3 className="text-xl font-semibold mb-2">No tokens found</h3>
-              <p className="text-foreground/60 mb-6">
-                Try a different search term
-              </p>
-              <Button variant="outline" onClick={() => setSearchQuery('')}>
-                Clear Search
-              </Button>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredTokens.map((tokenAddress) => (
-                <TokenCard
-                  key={tokenAddress}
-                  tokenAddress={tokenAddress}
-                  onLoad={handleTokenLoaded}
-                />
-              ))}
             </div>
-          )}
-        </div>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {tokens.map((token) => (
+              <TokenCard key={token.tokenAddress} token={token} />
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 mt-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(page - 1)}
+              disabled={page <= 1}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <div className="flex items-center gap-2">
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (page <= 3) {
+                  pageNum = i + 1;
+                } else if (page >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = page - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                      page === pageNum
+                        ? 'bg-primary text-white'
+                        : 'bg-surface hover:bg-surface/80 text-foreground/70'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(page + 1)}
+              disabled={page >= totalPages}
+              className="gap-1"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Token Card Component with real blockchain data
-function TokenCard({
-  tokenAddress,
-  onLoad
-}: {
-  tokenAddress: string;
-  onLoad?: (data: TokenData) => void;
-}) {
-  const { address } = useAccount();
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-  const [copied, setCopied] = useState(false);
-  const [showShareMenu, setShowShareMenu] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(true);
-
-  const { data: tokenInfo } = useReadContract({
-    address: tokenAddress as Address,
-    abi: SOCIAL_TOKEN_ABI,
-    functionName: 'getTokenInfo',
-    query: {
-      refetchInterval: 45000, // Poll every 45 seconds for price updates
-    },
-  });
-
-  // Fetch image from Supabase
-  useEffect(() => {
-    const fetchImage = async () => {
-      setImageLoading(true);
-      try {
-        const response = await fetch(`/api/tokens?address=${tokenAddress}`);
-        if (response.ok) {
-          const data = await response.json();
-          const url = data.token?.image_url || null;
-          setImageUrl(url);
-          setImageLoading(false);
-        } else {
-          // Silently fail for tokens without metadata (old tokens)
-          setImageUrl(null);
-          setImageLoading(false);
-        }
-      } catch (error) {
-        // Silently fail - just show gradient fallback
-        setImageUrl(null);
-        setImageLoading(false);
-      }
-    };
-    fetchImage();
-  }, [tokenAddress]);
-
-  // Load likes from Supabase
-  useEffect(() => {
-    const fetchLikes = async () => {
-      try {
-        const url = address
-          ? `/api/likes?token=${tokenAddress}&user=${address}`
-          : `/api/likes?token=${tokenAddress}`;
-
-        const response = await fetch(url);
-        if (response.ok) {
-          const data = await response.json();
-          setLikeCount(data.likeCount);
-          setIsLiked(data.userLiked);
-        }
-      } catch (error) {
-        console.error('Error fetching likes:', error);
-        setLikeCount(0);
-      }
-    };
-
-    fetchLikes();
-  }, [tokenAddress, address]);
-
-  // Report loaded data to parent for search filtering
-  useEffect(() => {
-    if (tokenInfo && onLoad) {
-      const [name, symbol, totalSupply, totalMembers, creator, isVerified, currentPrice] = tokenInfo;
-      onLoad({
-        address: tokenAddress,
-        name,
-        symbol,
-        totalSupply,
-        totalMembers,
-        creator,
-        isVerified,
-        currentPrice,
-      });
-    }
-  }, [tokenInfo, tokenAddress, onLoad]);
-
-  const handleLike = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!address) {
-      alert('Please connect your wallet to like tokens');
-      return;
-    }
-
-    const newIsLiked = !isLiked;
-
-    // Optimistic update
-    setIsLiked(newIsLiked);
-    setLikeCount(prev => newIsLiked ? prev + 1 : prev - 1);
-
-    try {
-      const method = newIsLiked ? 'POST' : 'DELETE';
-      const response = await fetch('/api/likes', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tokenAddress,
-          userAddress: address,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setLikeCount(data.likeCount);
-        setIsLiked(data.userLiked);
-      } else {
-        // Revert on error
-        setIsLiked(!newIsLiked);
-        setLikeCount(prev => newIsLiked ? prev - 1 : prev + 1);
-      }
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      // Revert on error
-      setIsLiked(!newIsLiked);
-      setLikeCount(prev => newIsLiked ? prev - 1 : prev + 1);
-    }
-  };
-
-  const handleShare = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowShareMenu(!showShareMenu);
-  };
-
-  const handleCopyLink = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigator.clipboard.writeText(`${window.location.origin}/token/${tokenAddress}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    setShowShareMenu(false);
-  };
-
-  const handleTwitterShare = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!tokenInfo) return;
-    const [name, symbol] = tokenInfo;
-    const text = `Check out $${symbol} (${name}) on MakeMeFamous! 🚀`;
-    const url = `${window.location.origin}/token/${tokenAddress}`;
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
-    setShowShareMenu(false);
-  };
-
-  if (!tokenInfo) {
-    return (
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-        <div className="animate-pulse">
-          {/* Image skeleton */}
-          <div className="aspect-[3/2] bg-surface"></div>
-
-          {/* Content skeleton */}
-          <div className="p-3 space-y-2">
-            <div className="space-y-1">
-              <div className="h-4 bg-surface rounded w-3/4"></div>
-              <div className="h-3 bg-surface rounded w-1/2"></div>
-            </div>
-            <div className="h-3 bg-surface rounded w-2/3"></div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="h-10 bg-surface rounded"></div>
-              <div className="h-10 bg-surface rounded"></div>
-            </div>
-            <div className="h-6 bg-surface rounded"></div>
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  const [name, symbol, totalSupply, totalMembers, creator, isVerified, currentPrice] = tokenInfo;
-
-  // Calculate market cap
-  const marketCap = Number(formatEther(currentPrice)) * Number(formatEther(totalSupply));
-  const formatMarketCap = (mc: number) => {
-    if (mc >= 1000000) return `${(mc / 1000000).toFixed(2)}M`;
-    if (mc >= 1000) return `${(mc / 1000).toFixed(2)}K`;
-    return mc.toFixed(2);
-  };
-
+export default function TokensPage() {
   return (
-    <Link href={`/token/${tokenAddress}`}>
-      <Card className="group overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-[1.03] cursor-pointer relative border-border/50 hover:border-primary/50 bg-gradient-to-br from-background to-surface/30">
-        {/* Token Image with Overlay */}
-        <div className="relative aspect-[4/3] bg-gradient-to-br from-primary/20 to-secondary/20 overflow-hidden">
-          {imageLoading ? (
-            <div className="w-full h-full bg-gradient-to-br from-surface to-surface/50 animate-pulse"></div>
-          ) : imageUrl ? (
-            <>
-              <img
-                src={imageUrl}
-                alt={name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                loading="eager"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </>
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary via-primary/80 to-secondary flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-              <span className="text-white font-bold text-5xl drop-shadow-lg relative z-10">{symbol.charAt(0)}</span>
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-8">
+            <div className="h-10 bg-surface rounded w-1/3" />
+            <div className="grid grid-cols-3 gap-4">
+              <div className="h-24 bg-surface rounded" />
+              <div className="h-24 bg-surface rounded" />
+              <div className="h-24 bg-surface rounded" />
             </div>
-          )}
-
-          {/* Badges */}
-          <div className="absolute top-3 right-3 flex gap-2">
-            {isVerified && (
-              <Badge className="bg-blue-500 text-white border-0 shadow-lg text-xs px-2 py-1">
-                ✓ Verified
-              </Badge>
-            )}
-          </div>
-
-          {/* Quick Stats Overlay on Hover */}
-          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-            <div className="flex items-center justify-between text-white text-xs">
-              <div className="flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                <span className="font-medium">{formatMarketCap(marketCap)} MC</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                <span>{Number(totalMembers)} holders</span>
-              </div>
+            <div className="h-12 bg-surface rounded" />
+            <div className="grid grid-cols-4 gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-64 bg-surface rounded" />
+              ))}
             </div>
           </div>
         </div>
-
-        {/* Content Section */}
-        <div className="p-4">
-          {/* Header */}
-          <div className="mb-3">
-            <div className="flex items-start justify-between mb-1">
-              <h3 className="font-bold text-lg truncate flex-1 group-hover:text-primary transition-colors">{name}</h3>
-              <div className="ml-2 text-right">
-                <p className="text-xs text-foreground/50">Price</p>
-                <p className="font-bold text-primary text-sm">{parseFloat(formatEther(currentPrice)).toFixed(6)}</p>
-              </div>
-            </div>
-            <p className="text-sm font-medium text-foreground/70">${symbol}</p>
-          </div>
-
-          {/* Creator */}
-          <div className="flex items-center gap-2 mb-3 p-2 bg-surface/50 rounded-lg">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center text-xs font-bold">
-              {creator.slice(2, 4).toUpperCase()}
-            </div>
-            <p className="text-xs text-foreground/60 flex-1 truncate">
-              {creator.slice(0, 6)}...{creator.slice(-4)}
-            </p>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            {/* Market Cap with USD */}
-            <div className="bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-lg px-3 py-2">
-              <div className="flex items-center gap-1 mb-1">
-                <DollarSign className="h-3 w-3 text-primary" />
-                <span className="text-foreground/60 text-xs">Market Cap</span>
-              </div>
-              <CompactPrice maticAmount={marketCap} />
-            </div>
-            {/* Holders */}
-            <div className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
-              <div className="flex items-center gap-1 mb-1">
-                <Users className="h-3 w-3 text-blue-500" />
-                <span className="text-foreground/60 text-xs">Holders</span>
-              </div>
-              <p className="font-bold text-blue-500">{Number(totalMembers)}</p>
-            </div>
-          </div>
-
-          {/* Social Actions */}
-          <div className="flex items-center justify-between pt-3 border-t border-border/50">
-            <button
-              onClick={handleLike}
-              className={`flex items-center gap-1.5 text-sm font-medium transition-all duration-200 hover:scale-110 ${
-                isLiked ? 'text-red-500' : 'text-foreground/60 hover:text-red-500'
-              }`}
-            >
-              <Heart className={`h-4 w-4 transition-all ${isLiked ? 'fill-current scale-110' : ''}`} />
-              <span className="font-semibold">{likeCount}</span>
-            </button>
-
-            <div className="relative">
-              <button
-                onClick={handleShare}
-                className="flex items-center gap-1.5 text-sm font-medium text-foreground/60 hover:text-primary transition-all duration-200 hover:scale-110"
-              >
-                <Share2 className="h-4 w-4" />
-                <span className="text-xs">Share</span>
-              </button>
-
-              {showShareMenu && (
-                <div className="absolute bottom-full right-0 mb-2 bg-background/95 backdrop-blur-lg border border-border/50 rounded-xl shadow-2xl p-1 min-w-[160px] z-10 animate-in slide-in-from-bottom-2">
-                  <button
-                    onClick={handleTwitterShare}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-surface/80 rounded-lg transition-colors"
-                  >
-                    <ExternalLink className="h-4 w-4 text-blue-400" />
-                    <span>Share on Twitter</span>
-                  </button>
-                  <button
-                    onClick={handleCopyLink}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-surface/80 rounded-lg transition-colors"
-                  >
-                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                    <span>{copied ? 'Copied!' : 'Copy Link'}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="px-3 py-1 bg-primary/10 rounded-full">
-              <span className="text-xs font-bold text-primary">View →</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Shine effect on hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-        </div>
-      </Card>
-    </Link>
+      }
+    >
+      <TokensContent />
+    </Suspense>
   );
 }

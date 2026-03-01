@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./SocialToken.sol";
+import "./SocialTokenV2.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
@@ -86,15 +86,15 @@ contract SocialTokenFactory is Ownable, ReentrancyGuard, Pausable {
         require(bytes(_symbol).length > 0, "Symbol cannot be empty");
         require(bytes(_imageUrl).length <= 500, "Image URL too long - use IPFS or Cloudinary");
         require(creatorTokenCount[msg.sender] < MAX_TOKENS_PER_USER, "Max tokens per user exceeded");
-        
-        // Deploy new SocialToken contract
-        SocialToken newToken = new SocialToken(
+
+        // Deploy new SocialTokenV2 contract (ignores _initialSupply — V2 uses fair launch)
+        SocialTokenV2 newToken = new SocialTokenV2(
             _name,
             _symbol,
             msg.sender,
-            _initialSupply,
             _description,
-            _imageUrl
+            _imageUrl,
+            address(this)
         );
         
         address tokenAddress = address(newToken);
@@ -178,7 +178,7 @@ contract SocialTokenFactory is Ownable, ReentrancyGuard, Pausable {
         // Get current price from token contract
         uint256 price = 0;
         if (info.isActive) {
-            try SocialToken(_tokenAddress).getBuyPrice(1e18) returns (uint256 p) {
+            try SocialTokenV2(_tokenAddress).getBuyPrice(1e18) returns (uint256 p) {
                 price = p;
             } catch {
                 price = 0;
@@ -255,7 +255,7 @@ contract SocialTokenFactory is Ownable, ReentrancyGuard, Pausable {
     function verifyToken(address _tokenAddress) external onlyOwner {
         require(tokenRegistry[_tokenAddress].tokenAddress != address(0), "Token not found");
         
-        SocialToken(_tokenAddress).verifyToken();
+        SocialTokenV2(_tokenAddress).verifyToken();
     }
     
     /**

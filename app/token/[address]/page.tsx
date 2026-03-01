@@ -13,10 +13,14 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PriceDisplay, MaticPriceIndicator } from '@/components/ui/price-display';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Bookmark, UserPlus, UserCheck, Bell, TrendingUp as TrendingUpIcon, TrendingDown, BarChart3, Users as UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 import { SOCIAL_TOKEN_ABI } from '@/lib/contracts';
 import { ShareButton } from '@/components/share-button';
+import { useWatchlist } from '@/hooks/use-watchlist';
+import { useFollows } from '@/hooks/use-follows';
+import { usePriceAlerts } from '@/hooks/use-price-alerts';
+import { useTokenAnalytics } from '@/hooks/use-token-analytics';
 
 interface TokenMetadata {
   token_address: string;
@@ -52,6 +56,15 @@ export default function TokenPage() {
   const tokenAddress = params.address as string;
   const { address } = useAccount();
   const [metadata, setMetadata] = useState<TokenMetadata | null>(null);
+  const { isWatchlisted, toggleWatchlist } = useWatchlist();
+  const { isFollowing, toggleFollow } = useFollows();
+  const { createAlert, getAlertsForToken } = usePriceAlerts();
+  const { analytics } = useTokenAnalytics(tokenAddress);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertPrice, setAlertPrice] = useState('');
+  const [alertDirection, setAlertDirection] = useState<'above' | 'below'>('above');
 
   // Fetch token metadata from Supabase
   useEffect(() => {
@@ -74,6 +87,21 @@ export default function TokenPage() {
     if (tokenAddress && isAddress(tokenAddress)) {
       fetchMetadata();
     }
+  }, [tokenAddress]);
+
+  // Fetch recommendations
+  useEffect(() => {
+    if (!tokenAddress || !isAddress(tokenAddress)) return;
+    const fetchRecs = async () => {
+      try {
+        const response = await fetch(`/api/tokens/recommendations?token=${tokenAddress}&limit=4`);
+        if (response.ok) {
+          const data = await response.json();
+          setRecommendations(data.recommendations || []);
+        }
+      } catch { /* ignore */ }
+    };
+    fetchRecs();
   }, [tokenAddress]);
 
   // Fetch token info from blockchain (poll every 45 seconds for price updates)
@@ -222,6 +250,116 @@ export default function TokenPage() {
                     </div>
                   )}
 
+                  {/* Watchlist Button */}
+                  {address && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleWatchlist(tokenAddress)}
+                      className="gap-1"
+                    >
+                      <Bookmark
+                        className={`h-4 w-4 ${
+                          isWatchlisted(tokenAddress)
+                            ? 'fill-primary text-primary'
+                            : 'text-foreground/60'
+                        }`}
+                      />
+                    </Button>
+                  )}
+
+                  {/* Follow Creator Button */}
+                  {address && metadata?.creator_address && address.toLowerCase() !== metadata.creator_address.toLowerCase() && (
+                    <Button
+                      variant={isFollowing(metadata.creator_address) ? 'outline' : 'ghost'}
+                      size="sm"
+                      onClick={async () => {
+                        const result = await toggleFollow(metadata.creator_address);
+                        if (result) setFollowerCount(result.followerCount);
+                      }}
+                      className="gap-1 text-xs"
+                    >
+                      {isFollowing(metadata.creator_address) ? (
+                        <>
+                          <UserCheck className="h-3.5 w-3.5" />
+                          Following
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="h-3.5 w-3.5" />
+                          Follow
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {/* Price Alert Button */}
+                  {address && (
+                    <div className="relative">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowAlertModal(!showAlertModal)}
+                        className="gap-1"
+                      >
+                        <Bell className={`h-4 w-4 ${getAlertsForToken(tokenAddress).length > 0 ? 'text-primary' : 'text-foreground/60'}`} />
+                      </Button>
+
+                      {showAlertModal && (
+                        <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-xl shadow-2xl p-4 w-64 z-50">
+                          <h4 className="text-sm font-semibold mb-3">Set Price Alert</h4>
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-xs text-foreground/60 mb-1 block">Target Price (MATIC)</label>
+                              <input
+                                type="number"
+                                value={alertPrice}
+                                onChange={(e) => setAlertPrice(e.target.value)}
+                                placeholder="0.000001"
+                                step="any"
+                                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setAlertDirection('above')}
+                                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                                  alertDirection === 'above'
+                                    ? 'bg-green-500/20 text-green-500 border border-green-500/30'
+                                    : 'bg-surface border border-border text-foreground/60'
+                                }`}
+                              >
+                                Above
+                              </button>
+                              <button
+                                onClick={() => setAlertDirection('below')}
+                                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                                  alertDirection === 'below'
+                                    ? 'bg-red-500/20 text-red-500 border border-red-500/30'
+                                    : 'bg-surface border border-border text-foreground/60'
+                                }`}
+                              >
+                                Below
+                              </button>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="w-full"
+                              disabled={!alertPrice}
+                              onClick={async () => {
+                                await createAlert(tokenAddress, alertPrice, alertDirection);
+                                setAlertPrice('');
+                                setShowAlertModal(false);
+                              }}
+                            >
+                              Set Alert
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Share Button */}
                   <ShareButton
                     tokenAddress={tokenAddress}
@@ -239,6 +377,91 @@ export default function TokenPage() {
         <div className="mb-6">
           <GraduationProgress tokenAddress={tokenAddress as Address} />
         </div>
+
+        {/* Analytics Cards */}
+        {analytics && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <Card className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <BarChart3 className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs text-foreground/60">24h Volume</span>
+              </div>
+              <p className="text-sm font-bold">{analytics.volume24h.toFixed(2)} MATIC</p>
+              {analytics.volumeChange24h !== 0 && (
+                <p className={`text-xs ${analytics.volumeChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {analytics.volumeChange24h >= 0 ? '+' : ''}{analytics.volumeChange24h.toFixed(1)}%
+                </p>
+              )}
+            </Card>
+            <Card className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <BarChart3 className="h-3.5 w-3.5 text-blue-500" />
+                <span className="text-xs text-foreground/60">7d Volume</span>
+              </div>
+              <p className="text-sm font-bold">{analytics.volume7d.toFixed(2)} MATIC</p>
+              <p className="text-xs text-foreground/50">{analytics.tradeCount7d} trades</p>
+            </Card>
+            <Card className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                {analytics.priceChange24h !== null && analytics.priceChange24h >= 0
+                  ? <TrendingUpIcon className="h-3.5 w-3.5 text-green-500" />
+                  : <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                }
+                <span className="text-xs text-foreground/60">24h Price</span>
+              </div>
+              <p className={`text-sm font-bold ${
+                analytics.priceChange24h !== null
+                  ? analytics.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'
+                  : 'text-foreground/50'
+              }`}>
+                {analytics.priceChange24h !== null
+                  ? `${analytics.priceChange24h >= 0 ? '+' : ''}${analytics.priceChange24h.toFixed(1)}%`
+                  : 'N/A'}
+              </p>
+            </Card>
+            <Card className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <UsersIcon className="h-3.5 w-3.5 text-purple-500" />
+                <span className="text-xs text-foreground/60">Holder Growth</span>
+              </div>
+              <p className="text-sm font-bold">
+                {analytics.holderGrowth7d > 0 ? '+' : ''}{analytics.holderGrowth7d} this week
+              </p>
+              <p className="text-xs text-foreground/50">{analytics.holderCount} total</p>
+            </Card>
+          </div>
+        )}
+
+        {/* Recommendations */}
+        {recommendations.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-foreground/70 mb-3">You might also like</h3>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {recommendations.map((rec: any) => (
+                <Link key={rec.tokenAddress} href={`/token/${rec.tokenAddress}`}>
+                  <Card className="p-3 min-w-[180px] hover:shadow-lg transition-shadow cursor-pointer">
+                    <div className="flex items-center gap-2 mb-2">
+                      {rec.imageUrl ? (
+                        <img src={rec.imageUrl} alt={rec.name} className="w-8 h-8 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">{rec.symbol.charAt(0)}</span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{rec.name}</p>
+                        <p className="text-xs text-foreground/50">${rec.symbol}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-foreground/60">
+                      {rec.sharedTraders} traders in common
+                    </p>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-6">
           {/* Main Column - Chart + Trading + History */}
